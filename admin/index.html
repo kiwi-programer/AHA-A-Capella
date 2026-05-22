@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AHA Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DynaPuff:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --marble: #f0eeeb;
+    --marble-dark: #e2deda;
+    --cream: #faf8f5;
+    --charcoal: #2e2e2e;
+    --charcoal-mid: #4a4a4a;
+    --charcoal-light: #7a7a7a;
+    --gold: #c8922a;
+    --gold-light: #e8b84b;
+    --white: #ffffff;
+    --shadow: rgba(46,46,46,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'DynaPuff', cursive;
+    background: linear-gradient(180deg, #f6f2eb 0%, #f0eeeb 40%, #ebe6df 100%);
+    color: var(--charcoal);
+  }
+
+  .shell {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+  }
+
+  .sidebar {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(14px);
+    border-right: 2px solid var(--marble-dark);
+    padding: 1.5rem;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .brand-badge {
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 0.25rem 0.6rem 0.35rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+  }
+
+  .brand h1 {
+    font-size: 1.1rem;
+    margin: 0;
+    line-height: 1.1;
+  }
+
+  .brand p {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--charcoal-light);
+  }
+
+  .panel {
+    background: var(--white);
+    border: 2px solid var(--marble-dark);
+    border-radius: 20px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+  }
+
+  .panel h2,
+  .panel h3 {
+    margin: 0 0 0.75rem;
+  }
+
+  .panel h2 { font-size: 1rem; }
+  .panel p { margin: 0 0 1rem; font-size: 0.8rem; color: var(--charcoal-light); line-height: 1.5; }
+
+  label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 0.35rem;
+    color: var(--charcoal-mid);
+  }
+
+  input, textarea {
+    width: 100%;
+    border: 2px solid var(--marble-dark);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: var(--cream);
+    color: var(--charcoal);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 92px;
+  }
+
+  .btn {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem 1rem 0.95rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--charcoal);
+    color: var(--cream);
+    transition: 0.2s ease;
+  }
+
+  .btn:hover { background: var(--gold); }
+  .btn.secondary { background: transparent; color: var(--charcoal); border: 2px solid var(--marble-dark); }
+  .btn.secondary:hover { background: #fff; border-color: var(--gold); }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--charcoal-mid);
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #d54d4d;
+  }
+
+  .dot.on { background: #2f8f4e; }
+
+  .editor-area {
+    padding: 1.5rem;
+  }
+
+  .editor-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .editor-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+  }
+
+  .editor-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: var(--charcoal-light);
+  }
+
+  .editor-toolbar {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .editor-toolbar .btn {
+    width: auto;
+    min-width: 160px;
+  }
+
+  .group {
+    background: rgba(255,255,255,0.72);
+    border: 2px solid var(--marble-dark);
+    border-radius: 20px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  }
+
+  .group h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  .field {
+    margin-bottom: 0.85rem;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .editable {
+    border: 2px dashed var(--marble-dark);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    background: rgba(255,255,255,0.85);
+    min-height: 48px;
+    outline: none;
+    line-height: 1.5;
+  }
+
+  .editable:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(200,146,42,0.16);
+  }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 960px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; }
+  }
+
+  @media (max-width: 640px) {
+    .editor-area { padding: 1rem; }
+    .editor-toolbar .btn { width: 100%; }
+  }
+</style>
+<script src="../shared/site-content.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">AHA</div>
+        <div>
+          <h1>Admin Portal</h1>
+          <p>Supabase-locked site editor</p>
+        </div>
+      </div>
+
+      <div class="panel" id="authPanel">
+        <h2>Login</h2>
+        <p>Sign in with Supabase to unlock editing.</p>
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com">
+        <div style="height:0.75rem"></div>
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="••••••••">
+        <div style="height:0.9rem"></div>
+        <button class="btn" id="loginBtn" type="button">Sign in</button>
+        <div style="height:0.5rem"></div>
+        <button class="btn secondary hidden" id="logoutBtn" type="button">Sign out</button>
+      </div>
+
+      <div class="panel">
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Locked</span></div>
+        <p id="statusCopy" style="margin-top:0.75rem">No active session.</p>
+      </div>
+
+      <div class="panel hidden" id="savePanel">
+        <h3>Editing</h3>
+        <p>Click any text block in the editor area and type directly. Save pushes the content to Supabase through the backend.</p>
+        <button class="btn" id="saveBtn" type="button">Save to Backend</button>
+        <div style="height:0.5rem"></div>
+        <button class="btn secondary" id="reloadBtn" type="button">Reload from Backend</button>
+      </div>
+    </aside>
+
+    <main class="editor-area">
+      <div class="editor-header">
+        <div>
+          <h2>Edit Content</h2>
+          <p>Directly click the text blocks below. The public site reads from the same stored content.</p>
+        </div>
+        <div class="editor-toolbar">
+          <button class="btn secondary hidden" id="toggleEditBtn" type="button">Enable Edit Mode</button>
+        </div>
+      </div>
+
+      <div id="editorRoot"></div>
+    </main>
+  </div>
+
+<script>
+  const BACKEND_API_BASE = 'https://YOUR-BACKEND-VERCEL-URL.vercel.app';
+  const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+  const editorRoot = document.getElementById('editorRoot');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
+  const toggleEditBtn = document.getElementById('toggleEditBtn');
+  const savePanel = document.getElementById('savePanel');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const statusCopy = document.getElementById('statusCopy');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentSession = null;
+  let editModeEnabled = false;
+
+  const groups = [
+    {
+      title: 'Home Page',
+      items: ['heroTitle', 'heroSubtitle', 'mottoLabel', 'mottoText', 'mottoExplain', 'homeCard1Title', 'homeCard1Desc', 'homeCard2Title', 'homeCard2Desc', 'homeCard3Title', 'homeCard3Desc', 'pocoStoryTitle', 'pocoStoryBody']
+    },
+    {
+      title: 'Events Page',
+      items: ['eventsTitle', 'eventsSubtitle', 'upcomingEventsLabel', 'event1Title', 'event1Body', 'event2Title', 'event2Body', 'event3Title', 'event3Body', 'event4Title', 'event4Body', 'meetupLabel']
+    },
+    {
+      title: 'Songs Page',
+      items: ['songsTitle', 'songsSubtitle', 'songLabel']
+    },
+    {
+      title: 'Contact Page',
+      items: ['contactTitle', 'contactSubtitle', 'messageLabel', 'aboutLabel', 'contactCardTitle', 'contactLocationTitle', 'contactLocationBody', 'contactRehearsalsTitle', 'contactRehearsalsBody', 'contactMembersTitle', 'contactMembersBody', 'contactMascotTitle', 'contactMascotBody']
+    }
+  ];
+
+  function createField(key) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'field';
+
+    const label = document.createElement('label');
+    label.textContent = key;
+    label.setAttribute('for', key);
+
+    const editor = document.createElement('div');
+    editor.className = 'editable';
+    editor.id = key;
+    editor.dataset.editKey = key;
+    editor.setAttribute('contenteditable', 'false');
+    editor.setAttribute('spellcheck', 'false');
+    editor.textContent = window.AHASiteContent.defaults[key] || '';
+    editor.addEventListener('input', () => {
+      editor.dataset.dirty = 'true';
+    });
+
+    wrapper.append(label, editor);
+    return wrapper;
+  }
+
+  function renderEditor(content = {}) {
+    const merged = window.AHASiteContent.applyContent(content, document);
+    editorRoot.innerHTML = '';
+
+    groups.forEach((group) => {
+      const section = document.createElement('section');
+      section.className = 'group';
+
+      const heading = document.createElement('h3');
+      heading.textContent = group.title;
+      section.appendChild(heading);
+
+      group.items.forEach((key) => {
+        const field = createField(key);
+        const editor = field.querySelector('.editable');
+        editor.innerHTML = merged[key] || window.AHASiteContent.defaults[key] || '';
+        section.appendChild(field);
+      });
+
+      editorRoot.appendChild(section);
+    });
+
+    window.AHASiteContent.setEditable(editModeEnabled, editorRoot);
+  }
+
+  function setLockedState(locked) {
+    statusDot.classList.toggle('on', !locked);
+    statusText.textContent = locked ? 'Locked' : 'Unlocked';
+    statusCopy.textContent = locked
+      ? 'No active session.'
+      : `Signed in as ${currentSession.user.email}. You can edit and save content.`;
+    savePanel.classList.toggle('hidden', locked);
+    toggleEditBtn.classList.toggle('hidden', locked);
+    logoutBtn.classList.toggle('hidden', locked);
+    loginBtn.classList.toggle('hidden', !locked);
+  }
+
+  function setEditMode(enabled) {
+    editModeEnabled = enabled;
+    window.AHASiteContent.setEditable(enabled, editorRoot);
+    toggleEditBtn.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
+  }
+
+  async function refreshEditor() {
+    const content = await window.AHASiteContent.loadContent(BACKEND_API_BASE).catch(() => ({}));
+    renderEditor(content);
+  }
+
+  async function handleLogin() {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) {
+      alert('Enter your Supabase email and password.');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    currentSession = data.session;
+    setLockedState(false);
+    setEditMode(true);
+    await refreshEditor();
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    currentSession = null;
+    setEditMode(false);
+    setLockedState(true);
+  }
+
+  async function handleSave() {
+    if (!currentSession) {
+      alert('You must be signed in to save.');
+      return;
+    }
+
+    const content = window.AHASiteContent.collectContent(editorRoot);
+    await window.AHASiteContent.saveContent(BACKEND_API_BASE, currentSession.access_token, content);
+    alert('Saved to backend.');
+  }
+
+  loginBtn.addEventListener('click', handleLogin);
+  logoutBtn.addEventListener('click', handleLogout);
+  saveBtn.addEventListener('click', handleSave);
+  reloadBtn.addEventListener('click', refreshEditor);
+  toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
+
+  supabase.auth.getSession().then(async ({ data }) => {
+    currentSession = data.session;
+    if (currentSession) {
+      setLockedState(false);
+      setEditMode(true);
+    } else {
+      setLockedState(true);
+    }
+    await refreshEditor();
+  });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    currentSession = session;
+    if (session) {
+      setLockedState(false);
+      setEditMode(true);
+    } else {
+      setLockedState(true);
+      setEditMode(false);
+    }
+  });
+</script>
+</body>
+</html>

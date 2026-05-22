@@ -1,0 +1,12 @@
+{
+  "name": "aha-capella-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0"
+  }
+}
