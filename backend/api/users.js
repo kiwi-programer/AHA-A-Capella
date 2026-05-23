@@ -262,6 +262,35 @@ module.exports = async (request, response) => {
         return response.status(400).json({ error: 'Missing id' });
       }
 
+      const { data: record, error: recordError } = await serviceClient
+        .from('admin_users')
+        .select('id, email')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (recordError) {
+        return response.status(500).json({ error: recordError.message });
+      }
+
+      if (record?.email) {
+        const { data: authUsers, error: listError } = await serviceClient.auth.admin.listUsers({
+          page: 1,
+          perPage: 1000
+        });
+
+        if (listError) {
+          return response.status(500).json({ error: listError.message });
+        }
+
+        const authUser = authUsers?.users?.find((user) => user.email?.toLowerCase() === record.email.toLowerCase());
+        if (authUser) {
+          const { error: deleteAuthError } = await serviceClient.auth.admin.deleteUser(authUser.id);
+          if (deleteAuthError) {
+            return response.status(500).json({ error: deleteAuthError.message });
+          }
+        }
+      }
+
       const { error } = await serviceClient
         .from('admin_users')
         .delete()

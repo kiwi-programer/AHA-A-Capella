@@ -754,7 +754,6 @@
         </div>
         <div class="editor-toolbar">
           <button class="btn secondary view-btn active" id="viewContentBtn" type="button">Page Content</button>
-          <button class="btn secondary view-btn" id="viewEventsBtn" type="button">Events</button>
           <button class="btn secondary view-btn" id="viewFormsBtn" type="button">Forms</button>
           <button class="btn secondary view-btn hidden" id="viewUsersBtn" type="button">Users</button>
         </div>
@@ -840,7 +839,6 @@
   const reloadBtn = document.getElementById('reloadBtn');
   const toggleEditBtn = document.getElementById('toggleEditBtn');
   const viewContentBtn = document.getElementById('viewContentBtn');
-  const viewEventsBtn = document.getElementById('viewEventsBtn');
   const viewFormsBtn = document.getElementById('viewFormsBtn');
   const viewUsersBtn = document.getElementById('viewUsersBtn');
   const submissionsCount = document.getElementById('submissionsCount');
@@ -908,7 +906,6 @@
   }
 
   function getGroupsForView(view) {
-    if (view === 'events') return eventGroups;
     return contentGroups;
   }
 
@@ -1304,7 +1301,7 @@
   }
 
   function renderCurrentEditor() {
-    renderIframeEditor(activeView === 'events' ? 'events' : 'home');
+    renderIframeEditor('home');
   }
 
   function setAuthState(isLoggedIn) {
@@ -1388,7 +1385,6 @@
 
     activeView = view;
     viewContentBtn.classList.toggle('active', view === 'content');
-    viewEventsBtn.classList.toggle('active', view === 'events');
     viewFormsBtn.classList.toggle('active', view === 'forms');
     viewUsersBtn.classList.toggle('active', view === 'users');
 
@@ -1398,7 +1394,7 @@
     usersSection.classList.toggle('hidden', !usersView);
     editorSection.classList.toggle('hidden', formsView || usersView);
 
-    const editingView = view === 'content' || view === 'events';
+    const editingView = view === 'content';
     saveBtn.classList.toggle('hidden', !editingView);
     reloadBtn.classList.toggle('hidden', !editingView);
     toggleEditBtn.classList.toggle('hidden', !editingView);
@@ -1406,14 +1402,6 @@
     if (view === 'content') {
       workspaceTitle.textContent = 'Page Content';
       workspaceDescription.textContent = 'Click any text block directly in the page preview and edit it in place.';
-      renderCurrentEditor();
-      setEditMode(editModeEnabled);
-      return;
-    }
-
-    if (view === 'events') {
-      workspaceTitle.textContent = 'Events';
-      workspaceDescription.textContent = 'Event page preview with direct click-to-edit text blocks.';
       renderCurrentEditor();
       setEditMode(editModeEnabled);
       return;
@@ -1709,7 +1697,6 @@
   addUserBtn.addEventListener('click', handleAddUser);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
   viewContentBtn.addEventListener('click', () => setActiveView('content'));
-  viewEventsBtn.addEventListener('click', () => setActiveView('events'));
   viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
   viewUsersBtn.addEventListener('click', () => setActiveView('users'));
   window.addEventListener('message', handleEditorMessage);
