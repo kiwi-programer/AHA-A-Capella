@@ -340,6 +340,35 @@
     color: var(--charcoal-light);
   }
 
+  .editor-frame-shell {
+    position: relative;
+  }
+
+  .editor-frame-overlay {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 3;
+    pointer-events: none;
+    background: rgba(46,46,46,0.9);
+    color: var(--cream);
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem 0.5rem;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+  }
+
+  .editor-preview-frame {
+    width: 100%;
+    min-height: calc(100vh - 240px);
+    border: 0;
+    display: block;
+    border-radius: 24px;
+    background: var(--marble);
+  }
+
   .editable-block {
     position: relative;
     border: 2px dashed transparent;
@@ -793,6 +822,8 @@
   const BACKEND_API_BASE = 'https://aha-a-capella-backend.vercel.app';
   const SUPABASE_URL = 'https://movktcfyatawdiyawkxf.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vdmt0Y2Z5YXRhd2RpeWF3a3hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Nzc3MjgsImV4cCI6MjA5NTA1MzcyOH0.IObNQuzarstua7IRkagrS9_ipBJiBCTGbP8AKDXOewQ';
+  const PUBLIC_SITE_URL = 'https://aha-a-capella.vercel.app/';
+  const EDITOR_CHANNEL = 'aha-site-editor';
 
   const loginScreen = document.getElementById('loginScreen');
   const appShell = document.getElementById('appShell');
@@ -836,6 +867,8 @@
   let activeView = 'content';
   let currentContent = { ...window.AHASiteContent.defaults };
   let canManageUsers = false;
+  let editorFrame = null;
+  let editorPage = 'home';
 
   const groups = [
     {
@@ -909,18 +942,95 @@
   }
 
   function showPage(pageName) {
-    const frame = editorRoot.querySelector('.editor-site-frame');
-    if (!frame) {
+    editorPage = pageName;
+    if (!editorFrame?.contentWindow) {
       return;
     }
 
-    frame.querySelectorAll('.page').forEach((page) => {
-      page.classList.toggle('active', page.id === `page-${pageName}`);
+    editorFrame.contentWindow.postMessage({
+      channel: EDITOR_CHANNEL,
+      type: 'show-page',
+      page: pageName
+    }, '*');
+  }
+
+  function sendEditorContent() {
+    if (!editorFrame?.contentWindow) {
+      return;
+    }
+
+    editorFrame.contentWindow.postMessage({
+      channel: EDITOR_CHANNEL,
+      type: 'set-content',
+      content: currentContent
+    }, '*');
+  }
+
+  function sendEditorMode() {
+    if (!editorFrame?.contentWindow) {
+      return;
+    }
+
+    editorFrame.contentWindow.postMessage({
+      channel: EDITOR_CHANNEL,
+      type: 'set-editable',
+      enabled: editModeEnabled
+    }, '*');
+  }
+
+  function handleEditorMessage(event) {
+    if (event.source !== editorFrame?.contentWindow) {
+      return;
+    }
+
+    const data = event.data || {};
+    if (data.channel !== EDITOR_CHANNEL) {
+      return;
+    }
+
+    if (data.type === 'content' && data.content) {
+      currentContent = { ...window.AHASiteContent.defaults, ...data.content };
+    }
+
+    if (data.type === 'page' && data.page) {
+      editorPage = data.page;
+    }
+
+    if (data.type === 'ready') {
+      sendEditorContent();
+      sendEditorMode();
+      showPage(editorPage);
+    }
+  }
+
+  function buildEditorUrl(pageName) {
+    const url = new URL(PUBLIC_SITE_URL);
+    url.searchParams.set('editor', '1');
+    url.searchParams.set('page', pageName);
+    return url.toString();
+  }
+
+  function renderIframeEditor(pageName) {
+    editorRoot.innerHTML = '';
+
+    const shell = document.createElement('div');
+    shell.className = 'page-canvas-shell editor-frame-shell';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'editor-frame-overlay';
+    overlay.textContent = 'Live frontend preview';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'editor-preview-frame';
+    frame.title = 'AHA frontend editor preview';
+    frame.src = buildEditorUrl(pageName);
+    frame.addEventListener('load', () => {
+      editorFrame = frame;
     });
 
-    frame.querySelectorAll('.nav-links a').forEach((link) => {
-      link.classList.toggle('active', link.dataset.page === pageName);
-    });
+    shell.append(overlay, frame);
+    editorRoot.appendChild(shell);
+    editorFrame = frame;
   }
 
   function renderContentEditor() {
@@ -1194,11 +1304,7 @@
   }
 
   function renderCurrentEditor() {
-    if (activeView === 'events') {
-      renderEventsEditor();
-      return;
-    }
-    renderContentEditor();
+    renderIframeEditor(activeView === 'events' ? 'events' : 'home');
   }
 
   function setAuthState(isLoggedIn) {
@@ -1226,9 +1332,7 @@
 
   function setEditMode(enabled) {
     editModeEnabled = enabled;
-    editorRoot.querySelectorAll('.editable-text').forEach((input) => {
-      input.contentEditable = String(enabled);
-    });
+    sendEditorMode();
     toggleEditBtn.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
   }
 
@@ -1237,7 +1341,6 @@
     currentContent = { ...window.AHASiteContent.defaults, ...content };
     if (activeView === 'content' || activeView === 'events') {
       renderCurrentEditor();
-      setEditMode(editModeEnabled);
     }
   }
 
@@ -1303,7 +1406,7 @@
     if (view === 'content') {
       workspaceTitle.textContent = 'Page Content';
       workspaceDescription.textContent = 'Click any text block directly in the page preview and edit it in place.';
-      renderContentEditor();
+      renderCurrentEditor();
       setEditMode(editModeEnabled);
       return;
     }
@@ -1311,7 +1414,7 @@
     if (view === 'events') {
       workspaceTitle.textContent = 'Events';
       workspaceDescription.textContent = 'Event page preview with direct click-to-edit text blocks.';
-      renderEventsEditor();
+      renderCurrentEditor();
       setEditMode(editModeEnabled);
       return;
     }
@@ -1591,8 +1694,7 @@
       return;
     }
 
-    const updated = window.AHASiteContent.collectContent(editorRoot);
-    const content = { ...currentContent, ...updated };
+    const content = { ...currentContent };
     await window.AHASiteContent.saveContent(BACKEND_API_BASE, currentSession.access_token, content);
     currentContent = content;
     alert('Saved to backend.');
@@ -1610,6 +1712,7 @@
   viewEventsBtn.addEventListener('click', () => setActiveView('events'));
   viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
   viewUsersBtn.addEventListener('click', () => setActiveView('users'));
+  window.addEventListener('message', handleEditorMessage);
 
   passwordInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {

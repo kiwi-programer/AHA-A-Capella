@@ -698,6 +698,39 @@
     color: var(--cream);
     padding: 0.85rem 1.75rem 1rem;
     border-radius: 99px;
+
+  #editorBanner {
+    position: fixed;
+    inset: 64px 0 auto 0;
+    z-index: 120;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  #editorBanner .editor-banner-pill {
+    margin: 0.75rem;
+    padding: 0.5rem 0.9rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(46,46,46,0.88);
+    color: var(--cream);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+  }
+
+  [data-edit-key][contenteditable="true"] {
+    outline: 2px dashed rgba(200,146,42,0.5);
+    outline-offset: 4px;
+    border-radius: 8px;
+    cursor: text;
+  }
+
+  [data-edit-key][contenteditable="true"]:focus {
+    background: rgba(255,255,255,0.6);
+    box-shadow: 0 0 0 3px rgba(200,146,42,0.12);
+  }
     font-size: 0.85rem;
     font-family: 'DynaPuff', cursive;
     font-weight: 600;
@@ -1181,6 +1214,91 @@
 
 <script>
 const BACKEND_API_BASE = 'https://aha-a-capella-backend.vercel.app';
+const EDITOR_MODE = new URLSearchParams(location.search).get('editor') === '1';
+const EDITOR_CHANNEL = 'aha-site-editor';
+let editorContentObserver = null;
+
+function postEditorMessage(type, payload = {}) {
+  if (!EDITOR_MODE || !window.parent || window.parent === window) {
+    return;
+  }
+
+  window.parent.postMessage({
+    channel: EDITOR_CHANNEL,
+    type,
+    ...payload
+  }, '*');
+}
+
+function syncEditorContent() {
+  if (!EDITOR_MODE) {
+    return;
+  }
+
+  postEditorMessage('content', {
+    content: window.AHASiteContent.collectContent(document),
+    page: document.querySelector('.page.active')?.id?.replace('page-', '') || 'home'
+  });
+}
+
+function enableEditorMode() {
+  if (!EDITOR_MODE) {
+    return;
+  }
+
+  window.AHASiteContent.setEditable(true, document);
+
+  const banner = document.createElement('div');
+  banner.id = 'editorBanner';
+  banner.innerHTML = '<div class="editor-banner-pill">Editor mode active. Click any text to edit it.</div>';
+  document.body.appendChild(banner);
+
+  document.querySelectorAll('[data-edit-key]').forEach((element) => {
+    element.addEventListener('input', syncEditorContent);
+    element.addEventListener('blur', syncEditorContent);
+  });
+
+  if (editorContentObserver) {
+    editorContentObserver.disconnect();
+  }
+
+  editorContentObserver = new MutationObserver(syncEditorContent);
+  window.AHASiteContent.getElements(document).forEach((element) => {
+    editorContentObserver.observe(element, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true
+    });
+  });
+
+  window.addEventListener('message', (event) => {
+    const data = event.data || {};
+    if (data.channel !== EDITOR_CHANNEL) {
+      return;
+    }
+
+    if (data.type === 'set-content') {
+      window.AHASiteContent.applyContent(data.content || {}, document);
+      syncEditorContent();
+      return;
+    }
+
+    if (data.type === 'set-editable') {
+      window.AHASiteContent.setEditable(!!data.enabled, document);
+      return;
+    }
+
+    if (data.type === 'show-page' && typeof window.showPage === 'function') {
+      window.showPage(data.page, document.querySelector(`.nav-links a[data-page="${data.page}"]`));
+    }
+  });
+
+  syncEditorContent();
+  postEditorMessage('ready', {
+    page: document.querySelector('.page.active')?.id?.replace('page-', '') || 'home'
+  });
+}
 
 async function hydratePublicContent() {
   try {
@@ -1198,6 +1316,9 @@ function showPage(name, linkEl) {
   document.getElementById('page-' + name).classList.add('active');
   if (linkEl) linkEl.classList.add('active');
   window.scrollTo({top: 0, behavior: 'smooth'});
+  if (EDITOR_MODE) {
+    postEditorMessage('page', { page: name });
+  }
   return false;
 }
 
@@ -1315,6 +1436,10 @@ function clearContact() {
 }
 
 hydratePublicContent();
+
+if (EDITOR_MODE) {
+  enableEditorMode();
+}
 
 </script>
 </body>
