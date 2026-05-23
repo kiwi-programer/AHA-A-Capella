@@ -182,7 +182,9 @@ module.exports = async (request, response) => {
 
       let authProvisioned = false;
       if (sendInvite) {
-        const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email);
+        const inviteRedirectTo = process.env.ADMIN_SIGNIN_URL || process.env.SUPABASE_INVITE_REDIRECT_URL;
+        const inviteOptions = inviteRedirectTo ? { redirectTo: inviteRedirectTo } : undefined;
+        const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email, inviteOptions);
         if (inviteError && !isAlreadyExistsAuthError(inviteError.message)) {
           return response.status(500).json({ error: inviteError.message });
         }

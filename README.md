@@ -18,6 +18,10 @@ For the backend project on Vercel, set these environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `CORS_ORIGIN`
 
+Optional (recommended for user invites):
+
+- `ADMIN_SIGNIN_URL` (for example: `https://aha-a-capella-admin.vercel.app`)
+
 Create a Supabase table named `site_content` with at least these columns:
 
 - `id` as the primary key

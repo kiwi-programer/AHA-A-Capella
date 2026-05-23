@@ -42,11 +42,13 @@ Required values:
 Optional values:
 
 - `CORS_ORIGIN`
+- `ADMIN_SIGNIN_URL` (or `SUPABASE_INVITE_REDIRECT_URL`)
 
 Notes:
 
 - `SUPABASE_SERVICE_ROLE_KEY` stays server-side only.
 - `CORS_ORIGIN` falls back to `*` if it is not set.
+- Set `ADMIN_SIGNIN_URL` to your deployed admin URL so invite/verification links do not redirect to localhost.
 
 ## Submissions Table
 
