@@ -282,6 +282,191 @@
     min-height: 64px;
   }
 
+  .page-canvas {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .page-canvas-shell {
+    background: rgba(255,255,255,0.55);
+    border: 2px solid var(--marble-dark);
+    border-radius: 28px;
+    padding: 1rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.05);
+  }
+
+  .page-preview {
+    background: #f7f3eb;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+
+  .page-preview-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255,255,255,0.86);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .page-preview-nav .brand-mini {
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .page-preview-body {
+    padding: 1.25rem;
+  }
+
+  .editable-block {
+    position: relative;
+    border: 2px dashed transparent;
+    border-radius: 14px;
+    padding: 0.1rem 0.15rem;
+    transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .editable-block:hover,
+  .editable-block:focus-within {
+    border-color: var(--gold);
+    background: rgba(200,146,42,0.04);
+    box-shadow: 0 0 0 3px rgba(200,146,42,0.08);
+  }
+
+  .editable-block::before {
+    content: attr(data-edit-label);
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.68rem;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--charcoal-light);
+  }
+
+  .editable-text {
+    min-height: 1.4em;
+    outline: none;
+    border-radius: 10px;
+    padding: 0.2rem 0.1rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+
+  .editable-text:focus {
+    background: rgba(255,255,255,0.9);
+  }
+
+  .editable-title {
+    font-size: clamp(2rem, 7vw, 3.6rem);
+    font-weight: 700;
+    line-height: 1.08;
+  }
+
+  .editable-subtitle {
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--charcoal-light);
+  }
+
+  .canvas-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .canvas-hero {
+    background: linear-gradient(180deg, #fffdfa, #f2ede4);
+    border-radius: 22px;
+    padding: 1.2rem;
+  }
+
+  .canvas-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .canvas-card {
+    background: rgba(255,255,255,0.92);
+    border: 2px solid var(--marble-dark);
+    border-radius: 18px;
+    padding: 0.85rem;
+  }
+
+  .canvas-section {
+    background: rgba(255,255,255,0.92);
+    border: 2px solid var(--marble-dark);
+    border-radius: 22px;
+    padding: 1rem;
+  }
+
+  .canvas-section h3,
+  .canvas-section h4,
+  .canvas-section p { margin: 0; }
+
+  .canvas-story {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .canvas-avatar {
+    width: 92px;
+    height: 92px;
+    border-radius: 24px;
+    background: #fff;
+    border: 2px solid var(--marble-dark);
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+  }
+
+  .canvas-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .events-cards {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .event-preview-card {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0.85rem;
+    align-items: start;
+    background: rgba(255,255,255,0.95);
+    border: 2px solid var(--marble-dark);
+    border-radius: 18px;
+    padding: 0.85rem;
+  }
+
+  .event-preview-date {
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f6edd9, #e9d19f);
+    color: var(--charcoal);
+    min-height: 86px;
+    font-weight: 700;
+  }
+
+  .event-preview-date .month {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+  }
+
+  .event-preview-date .day {
+    font-size: 1.7rem;
+    line-height: 1;
+  }
+
   .editor-input[readonly] {
     background: #f5f1eb;
     color: var(--charcoal-light);
@@ -675,91 +860,135 @@
     return contentGroups;
   }
 
-  function createTextField(key, noteText = '') {
+  function createEditableBlock(key, options = {}) {
     const wrapper = document.createElement('article');
-    wrapper.className = 'editor-field';
+    wrapper.className = options.wrapperClass || 'editable-block';
+    wrapper.dataset.editLabel = options.label || niceKeyName(key);
 
-    const heading = document.createElement('h4');
-    heading.textContent = niceKeyName(key);
-
-    const note = document.createElement('p');
-    note.className = 'editor-note';
-    note.textContent = noteText || `Text block key: ${key}`;
-
-    const input = document.createElement('textarea');
-    input.className = 'editor-input';
-    input.rows = 3;
-    input.value = currentContent[key] || '';
-    input.readOnly = !editModeEnabled;
-    input.addEventListener('input', () => {
-      currentContent[key] = input.value;
+    const text = document.createElement(options.multiline ? 'div' : 'div');
+    text.className = `editable-text ${options.className || ''}`.trim();
+    text.contentEditable = String(editModeEnabled);
+    text.spellcheck = false;
+    text.dataset.editKey = key;
+    text.innerHTML = currentContent[key] || '';
+    text.addEventListener('input', () => {
+      currentContent[key] = text.innerHTML;
     });
 
-    wrapper.append(heading, note, input);
+    wrapper.appendChild(text);
     return wrapper;
   }
 
   function renderContentEditor() {
     editorRoot.innerHTML = '';
 
-    contentGroups.forEach((group) => {
-      const section = document.createElement('section');
-      section.className = 'group';
+    const shell = document.createElement('div');
+    shell.className = 'page-canvas-shell';
 
-      const heading = document.createElement('h3');
-      heading.textContent = group.title;
-      section.appendChild(heading);
+    const preview = document.createElement('div');
+    preview.className = 'page-preview';
 
-      group.items.forEach((key) => {
-        section.appendChild(createTextField(key));
-      });
+    const nav = document.createElement('div');
+    nav.className = 'page-preview-nav';
+    nav.innerHTML = '<div class="brand-mini">AHA</div><div>Page Preview</div>';
 
-      editorRoot.appendChild(section);
+    const body = document.createElement('div');
+    body.className = 'page-preview-body canvas-grid';
+
+    const hero = document.createElement('section');
+    hero.className = 'canvas-hero canvas-grid';
+    hero.appendChild(createEditableBlock('heroTitle', { label: 'Hero Title', className: 'editable-title' }));
+    hero.appendChild(createEditableBlock('heroSubtitle', { label: 'Hero Subtitle', className: 'editable-subtitle' }));
+
+    const motto = document.createElement('section');
+    motto.className = 'canvas-section canvas-grid';
+    motto.appendChild(createEditableBlock('mottoLabel', { label: 'Motto Label' }));
+    motto.appendChild(createEditableBlock('mottoText', { label: 'Motto Text', className: 'editable-title' }));
+    motto.appendChild(createEditableBlock('mottoExplain', { label: 'Motto Explanation' }));
+
+    const cards = document.createElement('section');
+    cards.className = 'canvas-section canvas-grid';
+    cards.innerHTML = '<h3>Quick Links</h3>';
+    const cardsGrid = document.createElement('div');
+    cardsGrid.className = 'canvas-cards';
+    [
+      ['homeCard1Title', 'homeCard1Desc'],
+      ['homeCard2Title', 'homeCard2Desc'],
+      ['homeCard3Title', 'homeCard3Desc']
+    ].forEach(([titleKey, bodyKey]) => {
+      const card = document.createElement('article');
+      card.className = 'canvas-card';
+      card.appendChild(createEditableBlock(titleKey, { label: niceKeyName(titleKey), wrapperClass: 'editable-block' }));
+      card.appendChild(createEditableBlock(bodyKey, { label: niceKeyName(bodyKey), wrapperClass: 'editable-block' }));
+      cardsGrid.appendChild(card);
     });
+    cards.appendChild(cardsGrid);
+
+    const story = document.createElement('section');
+    story.className = 'canvas-section canvas-story';
+    const storyText = document.createElement('div');
+    storyText.appendChild(createEditableBlock('pocoStoryTitle', { label: 'Story Title', className: 'editable-title' }));
+    storyText.appendChild(createEditableBlock('pocoStoryBody', { label: 'Story Body' }));
+    const storyAvatar = document.createElement('div');
+    storyAvatar.className = 'canvas-avatar';
+    storyAvatar.innerHTML = '<img src="../assets/images/poco.png" alt="Poco">';
+    story.append(storyText, storyAvatar);
+
+    body.append(hero, motto, cards, story);
+    preview.append(nav, body);
+    shell.appendChild(preview);
+    editorRoot.appendChild(shell);
   }
 
   function renderEventsEditor() {
     editorRoot.innerHTML = '';
 
-    const labelsSection = document.createElement('section');
-    labelsSection.className = 'group';
+    const shell = document.createElement('div');
+    shell.className = 'page-canvas-shell';
 
-    const labelsHeading = document.createElement('h3');
-    labelsHeading.textContent = 'Events Page Labels';
-    labelsSection.appendChild(labelsHeading);
+    const preview = document.createElement('div');
+    preview.className = 'page-preview';
 
-    eventMetaKeys.forEach((key) => {
-      labelsSection.appendChild(createTextField(key));
-    });
+    const nav = document.createElement('div');
+    nav.className = 'page-preview-nav';
+    nav.innerHTML = '<div class="brand-mini">AHA</div><div>Events Preview</div>';
 
-    editorRoot.appendChild(labelsSection);
+    const body = document.createElement('div');
+    body.className = 'page-preview-body canvas-grid';
 
-    const eventsSection = document.createElement('section');
-    eventsSection.className = 'group';
+    const header = document.createElement('section');
+    header.className = 'canvas-section canvas-grid';
+    header.appendChild(createEditableBlock('eventsTitle', { label: 'Events Title', className: 'editable-title' }));
+    header.appendChild(createEditableBlock('eventsSubtitle', { label: 'Events Subtitle', className: 'editable-subtitle' }));
+    header.appendChild(createEditableBlock('upcomingEventsLabel', { label: 'Upcoming Events Label' }));
 
-    const eventsHeading = document.createElement('h3');
-    eventsHeading.textContent = 'Event List';
-    eventsSection.appendChild(eventsHeading);
-
-    const cards = document.createElement('div');
-    cards.className = 'event-card-list';
+    const list = document.createElement('section');
+    list.className = 'canvas-section canvas-grid';
+    list.innerHTML = '<h3>Event List</h3>';
+    const eventList = document.createElement('div');
+    eventList.className = 'events-cards';
 
     eventCards.forEach((eventCard) => {
       const card = document.createElement('article');
-      card.className = 'event-card';
-
-      const cardTitle = document.createElement('h4');
-      cardTitle.textContent = eventCard.label;
-      card.appendChild(cardTitle);
-
-      card.appendChild(createTextField(eventCard.titleKey, 'Event heading shown on the public events page.'));
-      card.appendChild(createTextField(eventCard.bodyKey, 'Event description shown under the heading.'));
-
-      cards.appendChild(card);
+      card.className = 'event-preview-card';
+      card.innerHTML = '<div class="event-preview-date"><div class="month">EDIT</div><div class="day">1</div></div>';
+      const info = document.createElement('div');
+      info.className = 'canvas-grid';
+      info.appendChild(createEditableBlock(eventCard.titleKey, { label: eventCard.label, className: 'editable-title' }));
+      info.appendChild(createEditableBlock(eventCard.bodyKey, { label: `${eventCard.label} Description` }));
+      card.appendChild(info);
+      eventList.appendChild(card);
     });
+    list.appendChild(eventList);
 
-    eventsSection.appendChild(cards);
-    editorRoot.appendChild(eventsSection);
+    const meetup = document.createElement('section');
+    meetup.className = 'canvas-section canvas-grid';
+    meetup.appendChild(createEditableBlock('meetupLabel', { label: 'Meetup Label', className: 'editable-title' }));
+
+    body.append(header, list, meetup);
+    preview.append(nav, body);
+    shell.appendChild(preview);
+    editorRoot.appendChild(shell);
   }
 
   function renderCurrentEditor() {
@@ -795,8 +1024,8 @@
 
   function setEditMode(enabled) {
     editModeEnabled = enabled;
-    editorRoot.querySelectorAll('.editor-input').forEach((input) => {
-      input.readOnly = !enabled;
+    editorRoot.querySelectorAll('.editable-text').forEach((input) => {
+      input.contentEditable = String(enabled);
     });
     toggleEditBtn.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
   }
@@ -871,7 +1100,7 @@
 
     if (view === 'content') {
       workspaceTitle.textContent = 'Page Content';
-      workspaceDescription.textContent = 'Google Sites-style text block editor for non-event page content.';
+      workspaceDescription.textContent = 'Click any text block directly in the page preview and edit it in place.';
       renderContentEditor();
       setEditMode(editModeEnabled);
       return;
@@ -879,7 +1108,7 @@
 
     if (view === 'events') {
       workspaceTitle.textContent = 'Events';
-      workspaceDescription.textContent = 'Specific event list editor with dedicated title and description fields.';
+      workspaceDescription.textContent = 'Event page preview with direct click-to-edit text blocks.';
       renderEventsEditor();
       setEditMode(editModeEnabled);
       return;
