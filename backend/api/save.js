@@ -15,13 +15,13 @@ function getServiceClient() {
 
 function getAuthClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
-  const supabasePublishableKey = process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabasePublishableKey) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return null;
   }
 
-  return createClient(supabaseUrl, supabasePublishableKey, {
+  return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   });
 }

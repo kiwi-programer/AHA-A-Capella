@@ -289,7 +289,7 @@
 <script>
   const BACKEND_API_BASE = 'https://YOUR-BACKEND-VERCEL-URL.vercel.app';
   const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
-  const PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'YOUR_PUBLIC_SUPABASE_PUBLISHABLE_KEY';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
   const editorRoot = document.getElementById('editorRoot');
   const loginBtn = document.getElementById('loginBtn');
@@ -304,7 +304,7 @@
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let currentSession = null;
   let editModeEnabled = false;
 
