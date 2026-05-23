@@ -27,6 +27,40 @@
     color: var(--charcoal);
   }
 
+  .login-screen {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+
+  .login-card {
+    width: min(520px, 100%);
+    background: rgba(255,255,255,0.9);
+    border: 2px solid var(--marble-dark);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+  }
+
+  .login-card h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .login-card p {
+    margin: 0.4rem 0 1rem;
+    color: var(--charcoal-light);
+    font-size: 0.85rem;
+  }
+
+  .login-error {
+    margin-top: 0.75rem;
+    color: #c0392b;
+    font-size: 0.8rem;
+    min-height: 1.2rem;
+  }
+
   .shell {
     min-height: 100vh;
     display: grid;
@@ -182,6 +216,16 @@
     min-width: 160px;
   }
 
+  .view-btn {
+    min-width: 120px !important;
+  }
+
+  .view-btn.active {
+    background: var(--charcoal);
+    color: var(--cream);
+    border-color: var(--charcoal);
+  }
+
   .group {
     background: rgba(255,255,255,0.72);
     border: 2px solid var(--marble-dark);
@@ -318,68 +362,84 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="shell">
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <h1>AHA Admin Portal</h1>
+      <p>Sign in to manage page content, events, and form submissions.</p>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com">
+
+      <div style="height:0.75rem"></div>
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••">
+
+      <div style="height:1rem"></div>
+
+      <button class="btn" id="loginBtn" type="button">Sign in</button>
+      <p class="login-error" id="loginError"></p>
+    </div>
+  </div>
+
+  <div class="shell hidden" id="appShell">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-badge">AHA</div>
         <div>
           <h1>Admin Portal</h1>
-          <p>Supabase-locked site editor</p>
+          <p>Content and submissions manager</p>
         </div>
-      </div>
-
-      <div class="panel" id="authPanel">
-        <h2>Login</h2>
-        <p>Sign in with Supabase to unlock editing.</p>
-        <label for="email">Email</label>
-        <input id="email" type="email" placeholder="you@example.com">
-        <div style="height:0.75rem"></div>
-        <label for="password">Password</label>
-        <input id="password" type="password" placeholder="••••••••">
-        <div style="height:0.9rem"></div>
-        <button class="btn" id="loginBtn" type="button">Sign in</button>
-        <div style="height:0.5rem"></div>
-        <button class="btn secondary hidden" id="logoutBtn" type="button">Sign out</button>
       </div>
 
       <div class="panel">
-        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Locked</span></div>
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Unlocked</span></div>
         <p id="statusCopy" style="margin-top:0.75rem">No active session.</p>
       </div>
 
-      <div class="panel hidden" id="savePanel">
-        <h3>Editing</h3>
-        <p>Click any text block in the editor area and type directly. Save pushes the content to Supabase through the backend.</p>
+      <div class="panel" id="savePanel">
+        <h3>Actions</h3>
+        <p>Save pushes the current page to the backend. Reload pulls the latest data from Supabase.</p>
         <button class="btn" id="saveBtn" type="button">Save to Backend</button>
         <div style="height:0.5rem"></div>
         <button class="btn secondary" id="reloadBtn" type="button">Reload from Backend</button>
-      </div>
-
-      <div class="panel hidden" id="submissionsPanel">
-        <div class="submissions-header">
-          <div>
-            <h3 style="margin:0">Submissions</h3>
-            <div class="submissions-count" id="submissionsCount">0 items</div>
-          </div>
-          <button class="btn secondary" id="refreshSubmissionsBtn" type="button">Refresh</button>
-        </div>
-        <p id="submissionsStatus" style="margin-top:0.75rem">No active session.</p>
-        <div class="submissions-list" id="submissionsList"></div>
+        <div style="height:0.5rem"></div>
+        <button class="btn secondary" id="toggleEditBtn" type="button">Disable Edit Mode</button>
+        <div style="height:0.5rem"></div>
+        <button class="btn secondary" id="logoutBtn" type="button">Sign out</button>
       </div>
     </aside>
 
     <main class="editor-area">
       <div class="editor-header">
         <div>
-          <h2>Edit Content</h2>
-          <p>Directly click the text blocks below. The public site reads from the same stored content.</p>
+          <h2 id="workspaceTitle">Page Content</h2>
+          <p id="workspaceDescription">Edit non-event content used on the public site.</p>
         </div>
         <div class="editor-toolbar">
-          <button class="btn secondary hidden" id="toggleEditBtn" type="button">Enable Edit Mode</button>
+          <button class="btn secondary view-btn active" id="viewContentBtn" type="button">Page Content</button>
+          <button class="btn secondary view-btn" id="viewEventsBtn" type="button">Events</button>
+          <button class="btn secondary view-btn" id="viewFormsBtn" type="button">Forms</button>
         </div>
       </div>
 
-      <div id="editorRoot"></div>
+      <section id="editorSection">
+        <div id="editorRoot"></div>
+      </section>
+
+      <section id="formsSection" class="hidden">
+        <div class="group">
+          <div class="submissions-header">
+            <div>
+              <h3 style="margin:0">Submissions</h3>
+              <div class="submissions-count" id="submissionsCount">0 items</div>
+            </div>
+            <button class="btn secondary" id="refreshSubmissionsBtn" type="button">Refresh</button>
+          </div>
+          <p id="submissionsStatus" style="margin-top:0.75rem">No active session.</p>
+          <div class="submissions-list" id="submissionsList"></div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -388,14 +448,22 @@
   const SUPABASE_URL = 'https://movktcfyatawdiyawkxf.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vdmt0Y2Z5YXRhd2RpeWF3a3hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Nzc3MjgsImV4cCI6MjA5NTA1MzcyOH0.IObNQuzarstua7IRkagrS9_ipBJiBCTGbP8AKDXOewQ';
 
+  const loginScreen = document.getElementById('loginScreen');
+  const appShell = document.getElementById('appShell');
+  const loginError = document.getElementById('loginError');
   const editorRoot = document.getElementById('editorRoot');
+  const editorSection = document.getElementById('editorSection');
+  const formsSection = document.getElementById('formsSection');
+  const workspaceTitle = document.getElementById('workspaceTitle');
+  const workspaceDescription = document.getElementById('workspaceDescription');
   const loginBtn = document.getElementById('loginBtn');
   const logoutBtn = document.getElementById('logoutBtn');
   const saveBtn = document.getElementById('saveBtn');
   const reloadBtn = document.getElementById('reloadBtn');
   const toggleEditBtn = document.getElementById('toggleEditBtn');
-  const savePanel = document.getElementById('savePanel');
-  const submissionsPanel = document.getElementById('submissionsPanel');
+  const viewContentBtn = document.getElementById('viewContentBtn');
+  const viewEventsBtn = document.getElementById('viewEventsBtn');
+  const viewFormsBtn = document.getElementById('viewFormsBtn');
   const submissionsCount = document.getElementById('submissionsCount');
   const submissionsStatus = document.getElementById('submissionsStatus');
   const submissionsList = document.getElementById('submissionsList');
@@ -409,6 +477,8 @@
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let currentSession = null;
   let editModeEnabled = false;
+  let activeView = 'content';
+  let currentContent = { ...window.AHASiteContent.defaults };
 
   const groups = [
     {
@@ -428,6 +498,14 @@
       items: ['contactTitle', 'contactSubtitle', 'messageLabel', 'aboutLabel', 'contactCardTitle', 'contactLocationTitle', 'contactLocationBody', 'contactRehearsalsTitle', 'contactRehearsalsBody', 'contactMembersTitle', 'contactMembersBody', 'contactMascotTitle', 'contactMascotBody']
     }
   ];
+
+  const contentGroups = groups.filter((group) => group.title !== 'Events Page');
+  const eventGroups = groups.filter((group) => group.title === 'Events Page');
+
+  function getGroupsForView(view) {
+    if (view === 'events') return eventGroups;
+    return contentGroups;
+  }
 
   function createField(key) {
     const wrapper = document.createElement('div');
@@ -452,11 +530,11 @@
     return wrapper;
   }
 
-  function renderEditor(content = {}) {
-    const merged = window.AHASiteContent.applyContent(content, document);
+  function renderEditor(content = {}, visibleGroups = contentGroups) {
+    const merged = { ...window.AHASiteContent.defaults, ...content };
     editorRoot.innerHTML = '';
 
-    groups.forEach((group) => {
+    visibleGroups.forEach((group) => {
       const section = document.createElement('section');
       section.className = 'group';
 
@@ -477,33 +555,73 @@
     window.AHASiteContent.setEditable(editModeEnabled, editorRoot);
   }
 
-  function setLockedState(locked) {
-    statusDot.classList.toggle('on', !locked);
-    statusText.textContent = locked ? 'Locked' : 'Unlocked';
-    statusCopy.textContent = locked
-      ? 'No active session.'
-      : `Signed in as ${currentSession.user.email}. You can edit and save content.`;
-    savePanel.classList.toggle('hidden', locked);
-    submissionsPanel.classList.toggle('hidden', locked);
-    toggleEditBtn.classList.toggle('hidden', locked);
-    logoutBtn.classList.toggle('hidden', locked);
-    loginBtn.classList.toggle('hidden', !locked);
-    if (locked) {
+  function setAuthState(isLoggedIn) {
+    loginScreen.classList.toggle('hidden', isLoggedIn);
+    appShell.classList.toggle('hidden', !isLoggedIn);
+
+    statusDot.classList.toggle('on', isLoggedIn);
+    statusText.textContent = isLoggedIn ? 'Unlocked' : 'Locked';
+    statusCopy.textContent = isLoggedIn
+      ? `Signed in as ${currentSession.user.email}.`
+      : 'No active session.';
+
+    if (!isLoggedIn) {
       submissionsStatus.textContent = 'No active session.';
       submissionsCount.textContent = '0 items';
       submissionsList.innerHTML = '';
+      loginError.textContent = '';
     }
   }
 
   function setEditMode(enabled) {
     editModeEnabled = enabled;
-    window.AHASiteContent.setEditable(enabled, editorRoot);
+    if (activeView !== 'forms') {
+      window.AHASiteContent.setEditable(enabled, editorRoot);
+    }
     toggleEditBtn.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
   }
 
   async function refreshEditor() {
     const content = await window.AHASiteContent.loadContent(BACKEND_API_BASE).catch(() => ({}));
-    renderEditor(content);
+    currentContent = { ...window.AHASiteContent.defaults, ...content };
+    if (activeView !== 'forms') {
+      renderEditor(currentContent, getGroupsForView(activeView));
+    }
+  }
+
+  function setActiveView(view) {
+    activeView = view;
+    viewContentBtn.classList.toggle('active', view === 'content');
+    viewEventsBtn.classList.toggle('active', view === 'events');
+    viewFormsBtn.classList.toggle('active', view === 'forms');
+
+    const formsView = view === 'forms';
+    formsSection.classList.toggle('hidden', !formsView);
+    editorSection.classList.toggle('hidden', formsView);
+
+    saveBtn.classList.toggle('hidden', formsView);
+    reloadBtn.classList.toggle('hidden', formsView);
+    toggleEditBtn.classList.toggle('hidden', formsView);
+
+    if (view === 'content') {
+      workspaceTitle.textContent = 'Page Content';
+      workspaceDescription.textContent = 'Edit non-event content used on the public site.';
+      renderEditor(currentContent, contentGroups);
+      setEditMode(editModeEnabled);
+      return;
+    }
+
+    if (view === 'events') {
+      workspaceTitle.textContent = 'Events';
+      workspaceDescription.textContent = 'Edit the events page labels and event copy.';
+      renderEditor(currentContent, eventGroups);
+      setEditMode(editModeEnabled);
+      return;
+    }
+
+    workspaceTitle.textContent = 'Forms';
+    workspaceDescription.textContent = 'Review submissions from song, meetup, and contact forms.';
+    loadSubmissions();
   }
 
   function formatSubmissionDate(value) {
@@ -600,28 +718,30 @@
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
     if (!email || !password) {
-      alert('Enter your Supabase email and password.');
+      loginError.textContent = 'Enter your Supabase email and password.';
       return;
     }
 
+    loginError.textContent = '';
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
-      alert(error.message);
+      loginError.textContent = error.message;
       return;
     }
 
     currentSession = data.session;
-    setLockedState(false);
+    setAuthState(true);
     setEditMode(true);
     await refreshEditor();
     await loadSubmissions();
+    setActiveView('content');
   }
 
   async function handleLogout() {
     await supabaseClient.auth.signOut();
     currentSession = null;
     setEditMode(false);
-    setLockedState(true);
+    setAuthState(false);
   }
 
   async function handleSave() {
@@ -630,8 +750,10 @@
       return;
     }
 
-    const content = window.AHASiteContent.collectContent(editorRoot);
+    const updated = window.AHASiteContent.collectContent(editorRoot);
+    const content = { ...currentContent, ...updated };
     await window.AHASiteContent.saveContent(BACKEND_API_BASE, currentSession.access_token, content);
+    currentContent = content;
     alert('Saved to backend.');
   }
 
@@ -641,27 +763,38 @@
   reloadBtn.addEventListener('click', refreshEditor);
   refreshSubmissionsBtn.addEventListener('click', loadSubmissions);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
+  viewContentBtn.addEventListener('click', () => setActiveView('content'));
+  viewEventsBtn.addEventListener('click', () => setActiveView('events'));
+  viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
+
+  passwordInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      handleLogin();
+    }
+  });
 
   supabaseClient.auth.getSession().then(async ({ data }) => {
     currentSession = data.session;
     if (currentSession) {
-      setLockedState(false);
+      setAuthState(true);
       setEditMode(true);
+      await refreshEditor();
+      await loadSubmissions();
+      setActiveView('content');
     } else {
-      setLockedState(true);
+      setAuthState(false);
     }
-    await refreshEditor();
-    await loadSubmissions();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
     currentSession = session;
     if (session) {
-      setLockedState(false);
+      setAuthState(true);
       setEditMode(true);
+      refreshEditor().then(() => setActiveView(activeView));
       loadSubmissions();
     } else {
-      setLockedState(true);
+      setAuthState(false);
       setEditMode(false);
     }
   });
