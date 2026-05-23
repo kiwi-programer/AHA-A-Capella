@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "commonjs",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "build": "node -e \"process.stdout.write('No build step required for Vercel functions')\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0"
