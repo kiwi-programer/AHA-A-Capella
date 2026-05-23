@@ -96,6 +96,15 @@ function isManagerRole(role) {
   return role === 'owner' || role === 'admin';
 }
 
+function isAlreadyExistsAuthError(message = '') {
+  const normalized = String(message).toLowerCase();
+  return normalized.includes('already') && (
+    normalized.includes('registered') ||
+    normalized.includes('exists') ||
+    normalized.includes('invited')
+  );
+}
+
 module.exports = async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
@@ -165,9 +174,19 @@ module.exports = async (request, response) => {
       const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : null;
       const role = typeof body.role === 'string' ? body.role.trim() : 'editor';
       const isActive = typeof body.isActive === 'boolean' ? body.isActive : true;
+      const sendInvite = body.sendInvite !== false;
 
       if (!email || !['owner', 'admin', 'editor'].includes(role)) {
         return response.status(400).json({ error: 'Invalid user payload' });
+      }
+
+      let authProvisioned = false;
+      if (sendInvite) {
+        const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email);
+        if (inviteError && !isAlreadyExistsAuthError(inviteError.message)) {
+          return response.status(500).json({ error: inviteError.message });
+        }
+        authProvisioned = !inviteError;
       }
 
       const { data, error } = await serviceClient
@@ -186,7 +205,11 @@ module.exports = async (request, response) => {
         return response.status(500).json({ error: error.message });
       }
 
-      return response.status(201).json({ ok: true, user: data });
+      return response.status(201).json({
+        ok: true,
+        user: data,
+        authProvisioned
+      });
     }
 
     if (request.method === 'PATCH') {

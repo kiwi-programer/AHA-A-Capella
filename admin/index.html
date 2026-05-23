@@ -1105,12 +1105,14 @@
     }
 
     try {
-      await fetchBackend('/api/users', {
+      const data = await fetchBackend('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, displayName, role, isActive: true })
       });
-      usersStatus.textContent = `Added or updated ${email}.`;
+      usersStatus.textContent = data.authProvisioned
+        ? `Added ${email} and sent auth invite.`
+        : `Updated ${email}. Auth account already exists or invite skipped.`;
       newUserEmail.value = '';
       newUserName.value = '';
       newUserRole.value = 'editor';
