@@ -982,17 +982,17 @@
     </div>
 
     <div class="hero-cards">
-      <div class="info-card" onclick="showPage('events', document.querySelectorAll('.nav-links a')[1])">
+      <div class="info-card" onclick="handleHeroCardClick('events', document.querySelectorAll('.nav-links a')[1])">
         <div class="card-icon">📅</div>
         <div class="card-title" data-edit-key="homeCard1Title">Events & Meetups</div>
         <div class="card-desc" data-edit-key="homeCard1Desc">Find upcoming rehearsals, performances, and social hangouts. Suggest your own meetup!</div>
       </div>
-      <div class="info-card" onclick="showPage('songs', document.querySelectorAll('.nav-links a')[2])">
+      <div class="info-card" onclick="handleHeroCardClick('songs', document.querySelectorAll('.nav-links a')[2])">
         <div class="card-icon">🎵</div>
         <div class="card-title" data-edit-key="homeCard2Title">Song Suggestions</div>
         <div class="card-desc" data-edit-key="homeCard2Desc">Share a song idea with the group and help shape the next setlist.</div>
       </div>
-      <div class="info-card" onclick="showPage('contact', document.querySelectorAll('.nav-links a')[3])">
+      <div class="info-card" onclick="handleHeroCardClick('contact', document.querySelectorAll('.nav-links a')[3])">
         <div class="card-icon">✉️</div>
         <div class="card-title" data-edit-key="homeCard3Title">Get in Touch</div>
         <div class="card-desc" data-edit-key="homeCard3Desc">Questions, ideas, or want to join AHA? We'd love to hear from you!</div>
@@ -1320,6 +1320,14 @@ function showPage(name, linkEl) {
     postEditorMessage('page', { page: name });
   }
   return false;
+}
+
+function handleHeroCardClick(pageName, linkEl) {
+  if (EDITOR_MODE) {
+    return false;
+  }
+
+  return showPage(pageName, linkEl);
 }
 
 // ---- FLOATING NOTES ----
