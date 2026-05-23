@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "vercel dev",
-    "build": "node -e \"process.stdout.write('No build step required for Vercel functions')\""
+    "build": "node -e \"require('fs').mkdirSync('public', { recursive: true }); process.stdout.write('Prepared public output directory for Vercel')\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0"
