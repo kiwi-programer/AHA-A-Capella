@@ -304,7 +304,7 @@
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   let currentSession = null;
   let editModeEnabled = false;
 
@@ -406,7 +406,7 @@
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
       alert(error.message);
       return;
@@ -419,7 +419,7 @@
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     currentSession = null;
     setEditMode(false);
     setLockedState(true);
@@ -442,7 +442,7 @@
   reloadBtn.addEventListener('click', refreshEditor);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
 
-  supabase.auth.getSession().then(async ({ data }) => {
+  supabaseClient.auth.getSession().then(async ({ data }) => {
     currentSession = data.session;
     if (currentSession) {
       setLockedState(false);
@@ -453,7 +453,7 @@
     await refreshEditor();
   });
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
     currentSession = session;
     if (session) {
       setLockedState(false);
