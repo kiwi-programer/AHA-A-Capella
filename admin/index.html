@@ -246,6 +246,64 @@
 
   .field:last-child { margin-bottom: 0; }
 
+  .editor-field {
+    margin-bottom: 0.9rem;
+    background: rgba(255,255,255,0.92);
+    border: 2px solid var(--marble-dark);
+    border-radius: 14px;
+    padding: 0.75rem;
+  }
+
+  .editor-field h4 {
+    margin: 0 0 0.45rem;
+    font-size: 0.82rem;
+    color: var(--charcoal-mid);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  .editor-note {
+    margin: 0 0 0.4rem;
+    font-size: 0.72rem;
+    color: var(--charcoal-light);
+  }
+
+  .editor-input {
+    width: 100%;
+    border: 2px solid var(--marble-dark);
+    border-radius: 10px;
+    padding: 0.7rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--charcoal);
+    background: var(--white);
+    resize: vertical;
+    min-height: 64px;
+  }
+
+  .editor-input[readonly] {
+    background: #f5f1eb;
+    color: var(--charcoal-light);
+  }
+
+  .event-card-list {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .event-card {
+    border: 2px solid var(--marble-dark);
+    border-radius: 16px;
+    padding: 0.85rem;
+    background: rgba(255,255,255,0.85);
+  }
+
+  .event-card h4 {
+    margin: 0 0 0.55rem;
+    font-size: 0.92rem;
+  }
+
   .editable {
     border: 2px dashed var(--marble-dark);
     border-radius: 14px;
@@ -346,6 +404,51 @@
     color: var(--charcoal-light);
   }
 
+  .user-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.9fr auto;
+    gap: 0.5rem;
+    align-items: center;
+    border: 2px solid var(--marble-dark);
+    border-radius: 14px;
+    padding: 0.7rem;
+    background: var(--white);
+  }
+
+  .user-row-name {
+    margin: 0;
+    font-size: 0.86rem;
+  }
+
+  .user-row-email {
+    margin: 0.2rem 0 0;
+    font-size: 0.74rem;
+    color: var(--charcoal-light);
+    word-break: break-all;
+  }
+
+  .user-row-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .small-btn {
+    border: 2px solid var(--marble-dark);
+    border-radius: 10px;
+    background: var(--cream);
+    color: var(--charcoal);
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 0.45rem 0.6rem;
+    cursor: pointer;
+  }
+
+  .small-btn:hover {
+    border-color: var(--gold);
+  }
+
   .hidden { display: none !important; }
 
   @media (max-width: 960px) {
@@ -420,6 +523,7 @@
           <button class="btn secondary view-btn active" id="viewContentBtn" type="button">Page Content</button>
           <button class="btn secondary view-btn" id="viewEventsBtn" type="button">Events</button>
           <button class="btn secondary view-btn" id="viewFormsBtn" type="button">Forms</button>
+          <button class="btn secondary view-btn hidden" id="viewUsersBtn" type="button">Users</button>
         </div>
       </div>
 
@@ -440,6 +544,44 @@
           <div class="submissions-list" id="submissionsList"></div>
         </div>
       </section>
+
+      <section id="usersSection" class="hidden">
+        <div class="group">
+          <div class="submissions-header">
+            <div>
+              <h3 style="margin:0">User Management</h3>
+              <div class="submissions-count" id="usersCount">0 users</div>
+            </div>
+            <button class="btn secondary" id="refreshUsersBtn" type="button">Refresh</button>
+          </div>
+
+          <p id="usersStatus" style="margin-top:0.75rem">No active session.</p>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.6rem;align-items:end;margin:0.9rem 0;">
+            <div>
+              <label for="newUserEmail">Email</label>
+              <input id="newUserEmail" type="email" placeholder="member@example.com">
+            </div>
+            <div>
+              <label for="newUserName">Display Name</label>
+              <input id="newUserName" type="text" placeholder="Member name">
+            </div>
+            <div>
+              <label for="newUserRole">Role</label>
+              <select id="newUserRole" style="width:100%;border:2px solid var(--marble-dark);border-radius:12px;padding:0.8rem 1rem;font-family:inherit;font-size:0.85rem;background:var(--cream);color:var(--charcoal);">
+                <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+            <div>
+              <button class="btn" id="addUserBtn" type="button">Add User</button>
+            </div>
+          </div>
+
+          <div class="submissions-list" id="usersList"></div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -454,6 +596,7 @@
   const editorRoot = document.getElementById('editorRoot');
   const editorSection = document.getElementById('editorSection');
   const formsSection = document.getElementById('formsSection');
+  const usersSection = document.getElementById('usersSection');
   const workspaceTitle = document.getElementById('workspaceTitle');
   const workspaceDescription = document.getElementById('workspaceDescription');
   const loginBtn = document.getElementById('loginBtn');
@@ -464,10 +607,19 @@
   const viewContentBtn = document.getElementById('viewContentBtn');
   const viewEventsBtn = document.getElementById('viewEventsBtn');
   const viewFormsBtn = document.getElementById('viewFormsBtn');
+  const viewUsersBtn = document.getElementById('viewUsersBtn');
   const submissionsCount = document.getElementById('submissionsCount');
   const submissionsStatus = document.getElementById('submissionsStatus');
   const submissionsList = document.getElementById('submissionsList');
   const refreshSubmissionsBtn = document.getElementById('refreshSubmissionsBtn');
+  const usersCount = document.getElementById('usersCount');
+  const usersStatus = document.getElementById('usersStatus');
+  const usersList = document.getElementById('usersList');
+  const refreshUsersBtn = document.getElementById('refreshUsersBtn');
+  const addUserBtn = document.getElementById('addUserBtn');
+  const newUserEmail = document.getElementById('newUserEmail');
+  const newUserName = document.getElementById('newUserName');
+  const newUserRole = document.getElementById('newUserRole');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const statusCopy = document.getElementById('statusCopy');
@@ -479,6 +631,7 @@
   let editModeEnabled = false;
   let activeView = 'content';
   let currentContent = { ...window.AHASiteContent.defaults };
+  let canManageUsers = false;
 
   const groups = [
     {
@@ -502,39 +655,54 @@
   const contentGroups = groups.filter((group) => group.title !== 'Events Page');
   const eventGroups = groups.filter((group) => group.title === 'Events Page');
 
+  const eventCards = [
+    { label: 'Event 1', titleKey: 'event1Title', bodyKey: 'event1Body' },
+    { label: 'Event 2', titleKey: 'event2Title', bodyKey: 'event2Body' },
+    { label: 'Event 3', titleKey: 'event3Title', bodyKey: 'event3Body' },
+    { label: 'Event 4', titleKey: 'event4Title', bodyKey: 'event4Body' }
+  ];
+
+  const eventMetaKeys = ['eventsTitle', 'eventsSubtitle', 'upcomingEventsLabel', 'meetupLabel'];
+
+  function niceKeyName(key) {
+    return key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
   function getGroupsForView(view) {
     if (view === 'events') return eventGroups;
     return contentGroups;
   }
 
-  function createField(key) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'field';
+  function createTextField(key, noteText = '') {
+    const wrapper = document.createElement('article');
+    wrapper.className = 'editor-field';
 
-    const label = document.createElement('label');
-    label.textContent = key;
-    label.setAttribute('for', key);
+    const heading = document.createElement('h4');
+    heading.textContent = niceKeyName(key);
 
-    const editor = document.createElement('div');
-    editor.className = 'editable';
-    editor.id = key;
-    editor.dataset.editKey = key;
-    editor.setAttribute('contenteditable', 'false');
-    editor.setAttribute('spellcheck', 'false');
-    editor.textContent = window.AHASiteContent.defaults[key] || '';
-    editor.addEventListener('input', () => {
-      editor.dataset.dirty = 'true';
+    const note = document.createElement('p');
+    note.className = 'editor-note';
+    note.textContent = noteText || `Text block key: ${key}`;
+
+    const input = document.createElement('textarea');
+    input.className = 'editor-input';
+    input.rows = 3;
+    input.value = currentContent[key] || '';
+    input.readOnly = !editModeEnabled;
+    input.addEventListener('input', () => {
+      currentContent[key] = input.value;
     });
 
-    wrapper.append(label, editor);
+    wrapper.append(heading, note, input);
     return wrapper;
   }
 
-  function renderEditor(content = {}, visibleGroups = contentGroups) {
-    const merged = { ...window.AHASiteContent.defaults, ...content };
+  function renderContentEditor() {
     editorRoot.innerHTML = '';
 
-    visibleGroups.forEach((group) => {
+    contentGroups.forEach((group) => {
       const section = document.createElement('section');
       section.className = 'group';
 
@@ -543,16 +711,63 @@
       section.appendChild(heading);
 
       group.items.forEach((key) => {
-        const field = createField(key);
-        const editor = field.querySelector('.editable');
-        editor.innerHTML = merged[key] || window.AHASiteContent.defaults[key] || '';
-        section.appendChild(field);
+        section.appendChild(createTextField(key));
       });
 
       editorRoot.appendChild(section);
     });
+  }
 
-    window.AHASiteContent.setEditable(editModeEnabled, editorRoot);
+  function renderEventsEditor() {
+    editorRoot.innerHTML = '';
+
+    const labelsSection = document.createElement('section');
+    labelsSection.className = 'group';
+
+    const labelsHeading = document.createElement('h3');
+    labelsHeading.textContent = 'Events Page Labels';
+    labelsSection.appendChild(labelsHeading);
+
+    eventMetaKeys.forEach((key) => {
+      labelsSection.appendChild(createTextField(key));
+    });
+
+    editorRoot.appendChild(labelsSection);
+
+    const eventsSection = document.createElement('section');
+    eventsSection.className = 'group';
+
+    const eventsHeading = document.createElement('h3');
+    eventsHeading.textContent = 'Event List';
+    eventsSection.appendChild(eventsHeading);
+
+    const cards = document.createElement('div');
+    cards.className = 'event-card-list';
+
+    eventCards.forEach((eventCard) => {
+      const card = document.createElement('article');
+      card.className = 'event-card';
+
+      const cardTitle = document.createElement('h4');
+      cardTitle.textContent = eventCard.label;
+      card.appendChild(cardTitle);
+
+      card.appendChild(createTextField(eventCard.titleKey, 'Event heading shown on the public events page.'));
+      card.appendChild(createTextField(eventCard.bodyKey, 'Event description shown under the heading.'));
+
+      cards.appendChild(card);
+    });
+
+    eventsSection.appendChild(cards);
+    editorRoot.appendChild(eventsSection);
+  }
+
+  function renderCurrentEditor() {
+    if (activeView === 'events') {
+      renderEventsEditor();
+      return;
+    }
+    renderContentEditor();
   }
 
   function setAuthState(isLoggedIn) {
@@ -566,62 +781,120 @@
       : 'No active session.';
 
     if (!isLoggedIn) {
+      canManageUsers = false;
+      viewUsersBtn.classList.add('hidden');
       submissionsStatus.textContent = 'No active session.';
       submissionsCount.textContent = '0 items';
       submissionsList.innerHTML = '';
+      usersStatus.textContent = 'No active session.';
+      usersCount.textContent = '0 users';
+      usersList.innerHTML = '';
       loginError.textContent = '';
     }
   }
 
   function setEditMode(enabled) {
     editModeEnabled = enabled;
-    if (activeView !== 'forms') {
-      window.AHASiteContent.setEditable(enabled, editorRoot);
-    }
+    editorRoot.querySelectorAll('.editor-input').forEach((input) => {
+      input.readOnly = !enabled;
+    });
     toggleEditBtn.textContent = enabled ? 'Disable Edit Mode' : 'Enable Edit Mode';
   }
 
   async function refreshEditor() {
     const content = await window.AHASiteContent.loadContent(BACKEND_API_BASE).catch(() => ({}));
     currentContent = { ...window.AHASiteContent.defaults, ...content };
-    if (activeView !== 'forms') {
-      renderEditor(currentContent, getGroupsForView(activeView));
+    if (activeView === 'content' || activeView === 'events') {
+      renderCurrentEditor();
+      setEditMode(editModeEnabled);
+    }
+  }
+
+  async function fetchBackend(path, options = {}) {
+    if (!currentSession?.access_token) {
+      throw new Error('No active session');
+    }
+
+    const response = await fetch(`${BACKEND_API_BASE.replace(/\/$/, '')}${path}`, {
+      ...options,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${currentSession.access_token}`,
+        ...(options.headers || {})
+      }
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `Request failed: ${response.status}`);
+    }
+
+    return data;
+  }
+
+  async function loadAccessProfile() {
+    try {
+      const data = await fetchBackend('/api/users?scope=self');
+      const me = data.me || {};
+      canManageUsers = !!me.canManageUsers;
+      viewUsersBtn.classList.toggle('hidden', !canManageUsers);
+      if (!canManageUsers && activeView === 'users') {
+        setActiveView('content');
+      }
+    } catch (error) {
+      canManageUsers = false;
+      viewUsersBtn.classList.add('hidden');
     }
   }
 
   function setActiveView(view) {
+    if (view === 'users' && !canManageUsers) {
+      return;
+    }
+
     activeView = view;
     viewContentBtn.classList.toggle('active', view === 'content');
     viewEventsBtn.classList.toggle('active', view === 'events');
     viewFormsBtn.classList.toggle('active', view === 'forms');
+    viewUsersBtn.classList.toggle('active', view === 'users');
 
     const formsView = view === 'forms';
+    const usersView = view === 'users';
     formsSection.classList.toggle('hidden', !formsView);
-    editorSection.classList.toggle('hidden', formsView);
+    usersSection.classList.toggle('hidden', !usersView);
+    editorSection.classList.toggle('hidden', formsView || usersView);
 
-    saveBtn.classList.toggle('hidden', formsView);
-    reloadBtn.classList.toggle('hidden', formsView);
-    toggleEditBtn.classList.toggle('hidden', formsView);
+    const editingView = view === 'content' || view === 'events';
+    saveBtn.classList.toggle('hidden', !editingView);
+    reloadBtn.classList.toggle('hidden', !editingView);
+    toggleEditBtn.classList.toggle('hidden', !editingView);
 
     if (view === 'content') {
       workspaceTitle.textContent = 'Page Content';
-      workspaceDescription.textContent = 'Edit non-event content used on the public site.';
-      renderEditor(currentContent, contentGroups);
+      workspaceDescription.textContent = 'Google Sites-style text block editor for non-event page content.';
+      renderContentEditor();
       setEditMode(editModeEnabled);
       return;
     }
 
     if (view === 'events') {
       workspaceTitle.textContent = 'Events';
-      workspaceDescription.textContent = 'Edit the events page labels and event copy.';
-      renderEditor(currentContent, eventGroups);
+      workspaceDescription.textContent = 'Specific event list editor with dedicated title and description fields.';
+      renderEventsEditor();
       setEditMode(editModeEnabled);
       return;
     }
 
-    workspaceTitle.textContent = 'Forms';
-    workspaceDescription.textContent = 'Review submissions from song, meetup, and contact forms.';
-    loadSubmissions();
+    if (view === 'forms') {
+      workspaceTitle.textContent = 'Forms';
+      workspaceDescription.textContent = 'Review submissions from song, meetup, and contact forms.';
+      loadSubmissions();
+      return;
+    }
+
+    workspaceTitle.textContent = 'Users';
+    workspaceDescription.textContent = 'Manage who can access and administer this portal.';
+    loadUsers();
   }
 
   function formatSubmissionDate(value) {
@@ -714,6 +987,139 @@
     }
   }
 
+  function renderUsers(users = []) {
+    usersCount.textContent = `${users.length} user${users.length === 1 ? '' : 's'}`;
+
+    if (!users.length) {
+      usersList.innerHTML = '<div class="submissions-empty">No users configured yet.</div>';
+      return;
+    }
+
+    usersList.innerHTML = '';
+    users.forEach((user) => {
+      const row = document.createElement('article');
+      row.className = 'user-row';
+
+      const identity = document.createElement('div');
+      const name = document.createElement('p');
+      name.className = 'user-row-name';
+      name.textContent = user.display_name || user.email;
+      const email = document.createElement('p');
+      email.className = 'user-row-email';
+      email.textContent = user.email;
+      identity.append(name, email);
+
+      const roleSelect = document.createElement('select');
+      roleSelect.className = 'editor-input';
+      roleSelect.style.minHeight = '40px';
+      roleSelect.style.padding = '0.45rem 0.6rem';
+      roleSelect.innerHTML = '<option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option>';
+      roleSelect.value = user.role || 'editor';
+
+      const controls = document.createElement('div');
+      controls.className = 'user-row-controls';
+
+      const activeLabel = document.createElement('label');
+      activeLabel.style.margin = '0';
+      activeLabel.style.display = 'inline-flex';
+      activeLabel.style.alignItems = 'center';
+      activeLabel.style.gap = '0.3rem';
+      activeLabel.style.fontSize = '0.75rem';
+      activeLabel.style.textTransform = 'none';
+      activeLabel.style.letterSpacing = '0';
+      const activeCheckbox = document.createElement('input');
+      activeCheckbox.type = 'checkbox';
+      activeCheckbox.checked = !!user.is_active;
+      activeCheckbox.style.width = '16px';
+      activeCheckbox.style.height = '16px';
+      activeLabel.append(activeCheckbox, document.createTextNode('Active'));
+
+      const saveUserBtn = document.createElement('button');
+      saveUserBtn.className = 'small-btn';
+      saveUserBtn.textContent = 'Save';
+      saveUserBtn.addEventListener('click', async () => {
+        try {
+          await fetchBackend('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: user.id,
+              role: roleSelect.value,
+              isActive: !!activeCheckbox.checked
+            })
+          });
+          usersStatus.textContent = `Updated ${user.email}.`;
+          await loadUsers();
+        } catch (error) {
+          usersStatus.textContent = error.message;
+        }
+      });
+
+      const removeUserBtn = document.createElement('button');
+      removeUserBtn.className = 'small-btn';
+      removeUserBtn.textContent = 'Remove';
+      removeUserBtn.addEventListener('click', async () => {
+        try {
+          await fetchBackend(`/api/users?id=${encodeURIComponent(String(user.id))}`, { method: 'DELETE' });
+          usersStatus.textContent = `Removed ${user.email}.`;
+          await loadUsers();
+        } catch (error) {
+          usersStatus.textContent = error.message;
+        }
+      });
+
+      controls.append(activeLabel, saveUserBtn, removeUserBtn);
+      row.append(identity, roleSelect, controls);
+      usersList.appendChild(row);
+    });
+  }
+
+  async function loadUsers() {
+    if (!currentSession || !canManageUsers) {
+      usersStatus.textContent = 'You do not have permission to manage users.';
+      renderUsers([]);
+      return;
+    }
+
+    usersStatus.textContent = 'Loading users...';
+
+    try {
+      const data = await fetchBackend('/api/users');
+      const users = data.users || [];
+      renderUsers(users);
+      usersStatus.textContent = `Loaded ${users.length} user${users.length === 1 ? '' : 's'}.`;
+    } catch (error) {
+      usersStatus.textContent = error.message;
+      renderUsers([]);
+    }
+  }
+
+  async function handleAddUser() {
+    const email = newUserEmail.value.trim().toLowerCase();
+    const displayName = newUserName.value.trim();
+    const role = newUserRole.value;
+
+    if (!email) {
+      usersStatus.textContent = 'Email is required.';
+      return;
+    }
+
+    try {
+      await fetchBackend('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, displayName, role, isActive: true })
+      });
+      usersStatus.textContent = `Added or updated ${email}.`;
+      newUserEmail.value = '';
+      newUserName.value = '';
+      newUserRole.value = 'editor';
+      await loadUsers();
+    } catch (error) {
+      usersStatus.textContent = error.message;
+    }
+  }
+
   async function handleLogin() {
     const email = emailInput.value.trim();
     const password = passwordInput.value.trim();
@@ -732,8 +1138,10 @@
     currentSession = data.session;
     setAuthState(true);
     setEditMode(true);
+    await loadAccessProfile();
     await refreshEditor();
     await loadSubmissions();
+    await loadUsers();
     setActiveView('content');
   }
 
@@ -762,10 +1170,13 @@
   saveBtn.addEventListener('click', handleSave);
   reloadBtn.addEventListener('click', refreshEditor);
   refreshSubmissionsBtn.addEventListener('click', loadSubmissions);
+  refreshUsersBtn.addEventListener('click', loadUsers);
+  addUserBtn.addEventListener('click', handleAddUser);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
   viewContentBtn.addEventListener('click', () => setActiveView('content'));
   viewEventsBtn.addEventListener('click', () => setActiveView('events'));
   viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
+  viewUsersBtn.addEventListener('click', () => setActiveView('users'));
 
   passwordInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
@@ -778,8 +1189,10 @@
     if (currentSession) {
       setAuthState(true);
       setEditMode(true);
+      await loadAccessProfile();
       await refreshEditor();
       await loadSubmissions();
+      await loadUsers();
       setActiveView('content');
     } else {
       setAuthState(false);
@@ -791,8 +1204,11 @@
     if (session) {
       setAuthState(true);
       setEditMode(true);
-      refreshEditor().then(() => setActiveView(activeView));
-      loadSubmissions();
+      loadAccessProfile().then(() => {
+        refreshEditor().then(() => setActiveView(activeView));
+        loadSubmissions();
+        loadUsers();
+      });
     } else {
       setAuthState(false);
       setEditMode(false);

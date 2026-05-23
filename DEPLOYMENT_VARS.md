@@ -31,7 +31,7 @@ Notes:
 
 ## Backend Vercel Deployment
 
-Files: `backend/api/content.js`, `backend/api/save.js`, `backend/api/health.js`
+Files: `backend/api/content.js`, `backend/api/save.js`, `backend/api/submissions.js`, `backend/api/users.js`, `backend/api/health.js`
 
 Required values:
 
@@ -69,3 +69,22 @@ Notes:
 
 - The backend writes public form submissions into `form_submissions`.
 - The admin panel reads submissions through the backend using a logged-in Supabase session.
+
+## Admin Users Table
+
+File: `supabase-admin-users.sql`
+
+Required values:
+
+- `admin_users.id` as an identity primary key
+- `email` with a unique constraint
+- `display_name`
+- `role`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+Notes:
+
+- The users API bootstraps the first authenticated user as `owner` when the table is empty.
+- User management actions are available to `owner` and `admin` roles.
