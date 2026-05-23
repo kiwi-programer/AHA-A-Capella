@@ -283,7 +283,7 @@
   }
 
   .page-canvas {
-    display: flex;
+     width: 100%;
     flex-direction: column;
     gap: 1rem;
   }
@@ -297,7 +297,7 @@
   }
 
   .page-preview {
-    background: #f7f3eb;
+    background: var(--marble);
     border-radius: 24px;
     overflow: hidden;
     border: 1px solid rgba(0,0,0,0.04);
@@ -318,7 +318,26 @@
   }
 
   .page-preview-body {
-    padding: 1.25rem;
+    padding: 0;
+  }
+
+  .editor-site-frame .page {
+    display: none;
+    min-height: 100vh;
+    padding-top: 64px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .editor-site-frame .page.active {
+    display: block;
+  }
+
+  .editor-site-frame footer {
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+    font-size: 0.8rem;
+    color: var(--charcoal-light);
   }
 
   .editable-block {
@@ -879,6 +898,31 @@
     return wrapper;
   }
 
+  function wireEditableNodes(root) {
+    root.querySelectorAll('[data-edit-key]').forEach((node) => {
+      node.contentEditable = String(editModeEnabled);
+      node.spellcheck = false;
+      node.addEventListener('input', () => {
+        currentContent[node.dataset.editKey] = node.innerHTML;
+      });
+    });
+  }
+
+  function showPage(pageName) {
+    const frame = editorRoot.querySelector('.editor-site-frame');
+    if (!frame) {
+      return;
+    }
+
+    frame.querySelectorAll('.page').forEach((page) => {
+      page.classList.toggle('active', page.id === `page-${pageName}`);
+    });
+
+    frame.querySelectorAll('.nav-links a').forEach((link) => {
+      link.classList.toggle('active', link.dataset.page === pageName);
+    });
+  }
+
   function renderContentEditor() {
     editorRoot.innerHTML = '';
 
@@ -886,56 +930,190 @@
     shell.className = 'page-canvas-shell';
 
     const preview = document.createElement('div');
-    preview.className = 'page-preview';
+    preview.className = 'page-preview editor-site-frame';
 
-    const nav = document.createElement('div');
-    nav.className = 'page-preview-nav';
-    nav.innerHTML = '<div class="brand-mini">AHA</div><div>Page Preview</div>';
+    preview.innerHTML = `
+<nav>
+  <div class="nav-logo"><span class="logo-pill">AHA</span> A Cappella Harmonic Association</div>
+  <ul class="nav-links">
+    <li><a href="#" data-page="home">Home</a></li>
+    <li><a href="#" data-page="events">Events</a></li>
+    <li><a href="#" data-page="songs">Songs</a></li>
+    <li><a href="#" data-page="contact">Contact</a></li>
+  </ul>
+</nav>
 
-    const body = document.createElement('div');
-    body.className = 'page-preview-body canvas-grid';
+<div class="notes-bg" id="notesBg"></div>
 
-    const hero = document.createElement('section');
-    hero.className = 'canvas-hero canvas-grid';
-    hero.appendChild(createEditableBlock('heroTitle', { label: 'Hero Title', className: 'editable-title' }));
-    hero.appendChild(createEditableBlock('heroSubtitle', { label: 'Hero Subtitle', className: 'editable-subtitle' }));
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-logo-wrap">
+      <div class="hero-logo">
+        <img src="../assets/images/poco.png" alt="Poco the Piano Penguin - AHA Logo">
+      </div>
+      <div class="hero-badge">EST. 2026</div>
+    </div>
 
-    const motto = document.createElement('section');
-    motto.className = 'canvas-section canvas-grid';
-    motto.appendChild(createEditableBlock('mottoLabel', { label: 'Motto Label' }));
-    motto.appendChild(createEditableBlock('mottoText', { label: 'Motto Text', className: 'editable-title' }));
-    motto.appendChild(createEditableBlock('mottoExplain', { label: 'Motto Explanation' }));
+    <h1 class="hero-title" data-edit-key="heroTitle">Welcome to <span>AHA!</span></h1>
+    <p class="hero-subtitle" data-edit-key="heroSubtitle">A Cappella Harmonic Association</p>
 
-    const cards = document.createElement('section');
-    cards.className = 'canvas-section canvas-grid';
-    cards.innerHTML = '<h3>Quick Links</h3>';
-    const cardsGrid = document.createElement('div');
-    cardsGrid.className = 'canvas-cards';
-    [
-      ['homeCard1Title', 'homeCard1Desc'],
-      ['homeCard2Title', 'homeCard2Desc'],
-      ['homeCard3Title', 'homeCard3Desc']
-    ].forEach(([titleKey, bodyKey]) => {
-      const card = document.createElement('article');
-      card.className = 'canvas-card';
-      card.appendChild(createEditableBlock(titleKey, { label: niceKeyName(titleKey), wrapperClass: 'editable-block' }));
-      card.appendChild(createEditableBlock(bodyKey, { label: niceKeyName(bodyKey), wrapperClass: 'editable-block' }));
-      cardsGrid.appendChild(card);
-    });
-    cards.appendChild(cardsGrid);
+    <div class="motto-card">
+      <div class="motto-label" data-edit-key="mottoLabel">Our Motto</div>
+      <div class="motto-text" data-edit-key="mottoText">"One Voice. Many Hearts."</div>
+      <div class="motto-explain" data-edit-key="mottoExplain">We all sing as one united voice with different harmonies — many voices, one purpose, endless heart.</div>
+    </div>
 
-    const story = document.createElement('section');
-    story.className = 'canvas-section canvas-story';
-    const storyText = document.createElement('div');
-    storyText.appendChild(createEditableBlock('pocoStoryTitle', { label: 'Story Title', className: 'editable-title' }));
-    storyText.appendChild(createEditableBlock('pocoStoryBody', { label: 'Story Body' }));
-    const storyAvatar = document.createElement('div');
-    storyAvatar.className = 'canvas-avatar';
-    storyAvatar.innerHTML = '<img src="../assets/images/poco.png" alt="Poco">';
-    story.append(storyText, storyAvatar);
+    <div class="hero-cards">
+      <div class="info-card" onclick="showPage('events', document.querySelectorAll('.nav-links a')[1])">
+        <div class="card-icon">📅</div>
+        <div class="card-title" data-edit-key="homeCard1Title">Events & Meetups</div>
+        <div class="card-desc" data-edit-key="homeCard1Desc">Find upcoming rehearsals, performances, and social hangouts. Suggest your own meetup!</div>
+      </div>
+      <div class="info-card" onclick="showPage('songs', document.querySelectorAll('.nav-links a')[2])">
+        <div class="card-icon">🎵</div>
+        <div class="card-title" data-edit-key="homeCard2Title">Song Suggestions</div>
+        <div class="card-desc" data-edit-key="homeCard2Desc">Share a song idea with the group and help shape the next setlist.</div>
+      </div>
+      <div class="info-card" onclick="showPage('contact', document.querySelectorAll('.nav-links a')[3])">
+        <div class="card-icon">✉️</div>
+        <div class="card-title" data-edit-key="homeCard3Title">Get in Touch</div>
+        <div class="card-desc" data-edit-key="homeCard3Desc">Questions, ideas, or want to join AHA? We'd love to hear from you!</div>
+      </div>
+    </div>
+  </div>
 
-    body.append(hero, motto, cards, story);
-    preview.append(nav, body);
+  <div class="poco-section">
+    <div class="poco-card">
+      <div class="poco-img">
+        <img src="../assets/images/poco.png" alt="Poco the Piano Penguin">
+      </div>
+      <div class="poco-text">
+        <h3 data-edit-key="pocoStoryTitle">Meet Poco, the Piano Penguin 🐧</h3>
+        <p data-edit-key="pocoStoryBody">Poco once had an idea — a spark of passion to bring voices together at school. One by one, they gathered singers, building a group from nothing but a dream. With vision and heart, Poco led that choir forward, and what began as an idea blossomed into AHA!: a talented, tight-knit group of singers who perform with harmony and purpose. Poco is our mascot, our origin story, and our reminder that great things start with one voice.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>♪ &nbsp;AHA! A Cappella Harmonic Association &nbsp;·&nbsp; <span>Est. 2026</span> &nbsp;·&nbsp; One Voice. Many Hearts. &nbsp;♪</footer>
+</div>
+
+<div class="page" id="page-events">
+  <div class="page-header">
+    <h2 data-edit-key="eventsTitle">📅 Events</h2>
+    <p data-edit-key="eventsSubtitle">Upcoming hangouts, rehearsals & performances</p>
+  </div>
+  <div class="page-content">
+    <div class="section-label" data-edit-key="upcomingEventsLabel">Upcoming Events</div>
+    <div class="events-list">
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUN</div><div class="day">7</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event1Title">Weekly Rehearsal 🎤</h4>
+          <p data-edit-key="event1Body">Regular group rehearsal — all members welcome. Bring your sheet music and warm up those vocals!</p>
+          <span class="event-tag">Rehearsal</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUN</div><div class="day">14</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event2Title">Summer Kickoff Social 🌟</h4>
+          <p data-edit-key="event2Body">Casual hangout to celebrate the end of the school year. Snacks, games, and of course, singing!</p>
+          <span class="event-tag">Hangout</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUL</div><div class="day">4</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event3Title">Independence Day Performance 🎆</h4>
+          <p data-edit-key="event3Body">AHA! will be performing at the community block party. Come cheer us on or join us on stage!</p>
+          <span class="event-tag">Performance</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUL</div><div class="day">19</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event4Title">New Member Meet & Greet 🐧</h4>
+          <p data-edit-key="event4Body">Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!</p>
+          <span class="event-tag">Open to All</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-label" data-edit-key="meetupLabel">Suggest a Meetup</div>
+    <div style="background:var(--white);border:2px solid var(--marble-dark);border-radius:20px;padding:2rem;"></div>
+  </div>
+  <footer>♪ &nbsp;AHA! A Cappella Harmonic Association &nbsp;·&nbsp; <span>Est. 2026</span> &nbsp;·&nbsp; One Voice. Many Hearts. &nbsp;♪</footer>
+</div>
+
+<div class="page" id="page-songs">
+  <div class="page-header">
+    <h2 data-edit-key="songsTitle">🎵 Song Suggestions</h2>
+    <p data-edit-key="songsSubtitle">Submit new ideas</p>
+  </div>
+  <div class="page-content">
+    <div class="section-label" data-edit-key="songLabel">Suggest a Song</div>
+    <div style="background:var(--white);border:2px solid var(--marble-dark);border-radius:20px;padding:2rem;"></div>
+  </div>
+  <footer>♪ &nbsp;AHA! A Cappella Harmonic Association &nbsp;·&nbsp; <span>Est. 2026</span> &nbsp;·&nbsp; One Voice. Many Hearts. &nbsp;♪</footer>
+</div>
+
+<div class="page" id="page-contact">
+  <div class="page-header">
+    <h2 data-edit-key="contactTitle">✉️ Contact</h2>
+    <p data-edit-key="contactSubtitle">Say hello · ask questions · share ideas</p>
+  </div>
+  <div class="page-content">
+    <div class="contact-grid">
+      <div>
+        <div class="section-label" data-edit-key="messageLabel">Send a Message</div>
+        <div style="background:var(--white);border:2px solid var(--marble-dark);border-radius:20px;padding:2rem;"></div>
+      </div>
+      <div>
+        <div class="section-label" data-edit-key="aboutLabel">About AHA!</div>
+        <div class="contact-info-card">
+          <h3 data-edit-key="contactCardTitle">We'd love to hear from you!</h3>
+          <div class="contact-row">
+            <div class="contact-icon">📍</div>
+            <div class="contact-row-text">
+              <h5 data-edit-key="contactLocationTitle">Location</h5>
+              <p data-edit-key="contactLocationBody">School rehearsal room & community spaces. Check Events for specific locations!</p>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">📅</div>
+            <div class="contact-row-text">
+              <h5 data-edit-key="contactRehearsalsTitle">Rehearsals</h5>
+              <p data-edit-key="contactRehearsalsBody">Weekly — see the Events page for the current schedule.</p>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">🎤</div>
+            <div class="contact-row-text">
+              <h5 data-edit-key="contactMembersTitle">New Members</h5>
+              <p data-edit-key="contactMembersBody">All voices welcome! No experience necessary — just passion and heart.</p>
+            </div>
+          </div>
+          <div class="contact-row">
+            <div class="contact-icon">🐧</div>
+            <div class="contact-row-text">
+              <h5 data-edit-key="contactMascotTitle">Mascot</h5>
+              <p data-edit-key="contactMascotBody">Poco the Piano Penguin — founder, dreamer, and forever our guide.</p>
+            </div>
+          </div>
+          <div class="poco-avatar-contact">
+            <img src="../assets/images/poco.png" alt="Poco">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>♪ &nbsp;AHA! A Cappella Harmonic Association &nbsp;·&nbsp; <span>Est. 2026</span> &nbsp;·&nbsp; One Voice. Many Hearts. &nbsp;♪</footer>
+</div>
+`;
+
+    wireEditableNodes(preview);
     shell.appendChild(preview);
     editorRoot.appendChild(shell);
   }
@@ -947,46 +1125,70 @@
     shell.className = 'page-canvas-shell';
 
     const preview = document.createElement('div');
-    preview.className = 'page-preview';
+    preview.className = 'page-preview editor-site-frame';
+    preview.innerHTML = `
+<nav>
+  <div class="nav-logo"><span class="logo-pill">AHA</span> A Cappella Harmonic Association</div>
+  <ul class="nav-links">
+    <li><a href="#" data-page="home">Home</a></li>
+    <li><a href="#" data-page="events">Events</a></li>
+    <li><a href="#" data-page="songs">Songs</a></li>
+    <li><a href="#" data-page="contact">Contact</a></li>
+  </ul>
+</nav>
 
-    const nav = document.createElement('div');
-    nav.className = 'page-preview-nav';
-    nav.innerHTML = '<div class="brand-mini">AHA</div><div>Events Preview</div>';
+<div class="page active" id="page-events">
+  <div class="page-header">
+    <h2 data-edit-key="eventsTitle">📅 Events</h2>
+    <p data-edit-key="eventsSubtitle">Upcoming hangouts, rehearsals & performances</p>
+  </div>
+  <div class="page-content">
+    <div class="section-label" data-edit-key="upcomingEventsLabel">Upcoming Events</div>
+    <div class="events-list">
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUN</div><div class="day">7</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event1Title">Weekly Rehearsal 🎤</h4>
+          <p data-edit-key="event1Body">Regular group rehearsal — all members welcome. Bring your sheet music and warm up those vocals!</p>
+          <span class="event-tag">Rehearsal</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUN</div><div class="day">14</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event2Title">Summer Kickoff Social 🌟</h4>
+          <p data-edit-key="event2Body">Casual hangout to celebrate the end of the school year. Snacks, games, and of course, singing!</p>
+          <span class="event-tag">Hangout</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUL</div><div class="day">4</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event3Title">Independence Day Performance 🎆</h4>
+          <p data-edit-key="event3Body">AHA! will be performing at the community block party. Come cheer us on or join us on stage!</p>
+          <span class="event-tag">Performance</span>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date"><div class="month">JUL</div><div class="day">19</div></div>
+        <div class="event-info">
+          <h4 data-edit-key="event4Title">New Member Meet & Greet 🐧</h4>
+          <p data-edit-key="event4Body">Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!</p>
+          <span class="event-tag">Open to All</span>
+        </div>
+      </div>
+    </div>
 
-    const body = document.createElement('div');
-    body.className = 'page-preview-body canvas-grid';
+    <hr class="divider">
 
-    const header = document.createElement('section');
-    header.className = 'canvas-section canvas-grid';
-    header.appendChild(createEditableBlock('eventsTitle', { label: 'Events Title', className: 'editable-title' }));
-    header.appendChild(createEditableBlock('eventsSubtitle', { label: 'Events Subtitle', className: 'editable-subtitle' }));
-    header.appendChild(createEditableBlock('upcomingEventsLabel', { label: 'Upcoming Events Label' }));
+    <div class="section-label" data-edit-key="meetupLabel">Suggest a Meetup</div>
+    <div style="background:var(--white);border:2px solid var(--marble-dark);border-radius:20px;padding:2rem;"></div>
+  </div>
+  <footer>♪ &nbsp;AHA! A Cappella Harmonic Association &nbsp;·&nbsp; <span>Est. 2026</span> &nbsp;·&nbsp; One Voice. Many Hearts. &nbsp;♪</footer>
+</div>
+`;
 
-    const list = document.createElement('section');
-    list.className = 'canvas-section canvas-grid';
-    list.innerHTML = '<h3>Event List</h3>';
-    const eventList = document.createElement('div');
-    eventList.className = 'events-cards';
-
-    eventCards.forEach((eventCard) => {
-      const card = document.createElement('article');
-      card.className = 'event-preview-card';
-      card.innerHTML = '<div class="event-preview-date"><div class="month">EDIT</div><div class="day">1</div></div>';
-      const info = document.createElement('div');
-      info.className = 'canvas-grid';
-      info.appendChild(createEditableBlock(eventCard.titleKey, { label: eventCard.label, className: 'editable-title' }));
-      info.appendChild(createEditableBlock(eventCard.bodyKey, { label: `${eventCard.label} Description` }));
-      card.appendChild(info);
-      eventList.appendChild(card);
-    });
-    list.appendChild(eventList);
-
-    const meetup = document.createElement('section');
-    meetup.className = 'canvas-section canvas-grid';
-    meetup.appendChild(createEditableBlock('meetupLabel', { label: 'Meetup Label', className: 'editable-title' }));
-
-    body.append(header, list, meetup);
-    preview.append(nav, body);
+    wireEditableNodes(preview);
     shell.appendChild(preview);
     editorRoot.appendChild(shell);
   }

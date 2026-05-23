@@ -105,6 +105,8 @@ function isAlreadyExistsAuthError(message = '') {
   );
 }
 
+const ADMIN_VERIFICATION_REDIRECT_URL = 'https://aha-a-capella-admin.vercel.app/';
+
 module.exports = async (request, response) => {
   response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
@@ -182,9 +184,9 @@ module.exports = async (request, response) => {
 
       let authProvisioned = false;
       if (sendInvite) {
-        const inviteRedirectTo = process.env.ADMIN_SIGNIN_URL || process.env.SUPABASE_INVITE_REDIRECT_URL;
-        const inviteOptions = inviteRedirectTo ? { redirectTo: inviteRedirectTo } : undefined;
-        const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email, inviteOptions);
+        const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email, {
+          redirectTo: ADMIN_VERIFICATION_REDIRECT_URL
+        });
         if (inviteError && !isAlreadyExistsAuthError(inviteError.message)) {
           return response.status(500).json({ error: inviteError.message });
         }
