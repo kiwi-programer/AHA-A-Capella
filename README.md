@@ -12,7 +12,7 @@
 For the backend project on Vercel, set these environment variables:
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+- `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `CORS_ORIGIN`
 
@@ -23,4 +23,4 @@ Create a Supabase table named `site_content` with at least these columns:
 - `updated_at` as `timestamptz`
 - `updated_by` as `text`
 
-The public front-end and the admin page both need the backend API URL and the Supabase project values replaced before deployment.
+The public front-end and the admin page both need the backend API URL replaced before deployment. The admin page also needs the Supabase project URL and public publishable key replaced before deployment.
