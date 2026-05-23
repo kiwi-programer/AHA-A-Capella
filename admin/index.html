@@ -217,6 +217,91 @@
     box-shadow: 0 0 0 3px rgba(200,146,42,0.16);
   }
 
+  .submissions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .submissions-count {
+    font-size: 0.75rem;
+    color: var(--charcoal-light);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .submissions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 420px;
+    overflow: auto;
+  }
+
+  .submission-card {
+    background: var(--white);
+    border: 2px solid var(--marble-dark);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+  }
+
+  .submission-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .submission-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem 0.28rem;
+    border-radius: 999px;
+    background: #f5efe6;
+    color: var(--charcoal);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .submission-time {
+    font-size: 0.72rem;
+    color: var(--charcoal-light);
+  }
+
+  .submission-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.95rem;
+  }
+
+  .submission-meta {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    color: var(--charcoal-light);
+    line-height: 1.5;
+  }
+
+  .submission-message {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+
+  .submissions-empty {
+    border: 2px dashed var(--marble-dark);
+    border-radius: 14px;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--charcoal-light);
+  }
+
   .hidden { display: none !important; }
 
   @media (max-width: 960px) {
@@ -269,6 +354,18 @@
         <div style="height:0.5rem"></div>
         <button class="btn secondary" id="reloadBtn" type="button">Reload from Backend</button>
       </div>
+
+      <div class="panel hidden" id="submissionsPanel">
+        <div class="submissions-header">
+          <div>
+            <h3 style="margin:0">Submissions</h3>
+            <div class="submissions-count" id="submissionsCount">0 items</div>
+          </div>
+          <button class="btn secondary" id="refreshSubmissionsBtn" type="button">Refresh</button>
+        </div>
+        <p id="submissionsStatus" style="margin-top:0.75rem">No active session.</p>
+        <div class="submissions-list" id="submissionsList"></div>
+      </div>
     </aside>
 
     <main class="editor-area">
@@ -298,6 +395,11 @@
   const reloadBtn = document.getElementById('reloadBtn');
   const toggleEditBtn = document.getElementById('toggleEditBtn');
   const savePanel = document.getElementById('savePanel');
+  const submissionsPanel = document.getElementById('submissionsPanel');
+  const submissionsCount = document.getElementById('submissionsCount');
+  const submissionsStatus = document.getElementById('submissionsStatus');
+  const submissionsList = document.getElementById('submissionsList');
+  const refreshSubmissionsBtn = document.getElementById('refreshSubmissionsBtn');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const statusCopy = document.getElementById('statusCopy');
@@ -382,9 +484,15 @@
       ? 'No active session.'
       : `Signed in as ${currentSession.user.email}. You can edit and save content.`;
     savePanel.classList.toggle('hidden', locked);
+    submissionsPanel.classList.toggle('hidden', locked);
     toggleEditBtn.classList.toggle('hidden', locked);
     logoutBtn.classList.toggle('hidden', locked);
     loginBtn.classList.toggle('hidden', !locked);
+    if (locked) {
+      submissionsStatus.textContent = 'No active session.';
+      submissionsCount.textContent = '0 items';
+      submissionsList.innerHTML = '';
+    }
   }
 
   function setEditMode(enabled) {
@@ -396,6 +504,96 @@
   async function refreshEditor() {
     const content = await window.AHASiteContent.loadContent(BACKEND_API_BASE).catch(() => ({}));
     renderEditor(content);
+  }
+
+  function formatSubmissionDate(value) {
+    if (!value) return 'Unknown time';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  }
+
+  function renderSubmissions(submissions = []) {
+    submissionsCount.textContent = `${submissions.length} item${submissions.length === 1 ? '' : 's'}`;
+
+    if (!submissions.length) {
+      submissionsList.innerHTML = '<div class="submissions-empty">No submissions yet.</div>';
+      return;
+    }
+
+    submissionsList.innerHTML = '';
+    submissions.forEach((submission) => {
+      const card = document.createElement('article');
+      card.className = 'submission-card';
+
+      const topLine = document.createElement('div');
+      topLine.className = 'submission-topline';
+
+      const tag = document.createElement('span');
+      tag.className = 'submission-tag';
+      tag.textContent = submission.submission_type || 'submission';
+
+      const time = document.createElement('span');
+      time.className = 'submission-time';
+      time.textContent = formatSubmissionDate(submission.created_at);
+
+      topLine.append(tag, time);
+
+      const title = document.createElement('h4');
+      title.className = 'submission-title';
+      title.textContent = submission.title || submission.name || '(Untitled)';
+
+      const meta = document.createElement('p');
+      meta.className = 'submission-meta';
+      const metaBits = [];
+      if (submission.name) metaBits.push(`From: ${submission.name}`);
+      if (submission.status) metaBits.push(`Status: ${submission.status}`);
+      if (submission.metadata?.artist) metaBits.push(`Artist: ${submission.metadata.artist}`);
+      if (submission.metadata?.difficulty) metaBits.push(`Difficulty: ${submission.metadata.difficulty}`);
+      if (submission.metadata?.proposedDate) metaBits.push(`Proposed: ${submission.metadata.proposedDate}`);
+      if (submission.reviewed_by) metaBits.push(`Reviewed by: ${submission.reviewed_by}`);
+      meta.textContent = metaBits.join(' · ') || 'No extra details';
+
+      const message = document.createElement('p');
+      message.className = 'submission-message';
+      message.textContent = submission.message || '(No message provided)';
+
+      card.append(topLine, title, meta, message);
+      submissionsList.appendChild(card);
+    });
+  }
+
+  async function loadSubmissions() {
+    if (!currentSession) {
+      submissionsStatus.textContent = 'No active session.';
+      renderSubmissions([]);
+      return;
+    }
+
+    submissionsStatus.textContent = 'Loading submissions...';
+
+    try {
+      const response = await fetch(`${BACKEND_API_BASE.replace(/\/$/, '')}/api/submissions?limit=100`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${currentSession.access_token}`
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to load submissions: ${response.status}`);
+      }
+
+      const submissions = data.submissions || [];
+      renderSubmissions(submissions);
+      submissionsStatus.textContent = submissions.length
+        ? `Loaded ${submissions.length} submission${submissions.length === 1 ? '' : 's'}.`
+        : 'No submissions yet.';
+    } catch (error) {
+      submissionsStatus.textContent = error.message;
+      renderSubmissions([]);
+    }
   }
 
   async function handleLogin() {
@@ -416,6 +614,7 @@
     setLockedState(false);
     setEditMode(true);
     await refreshEditor();
+    await loadSubmissions();
   }
 
   async function handleLogout() {
@@ -440,6 +639,7 @@
   logoutBtn.addEventListener('click', handleLogout);
   saveBtn.addEventListener('click', handleSave);
   reloadBtn.addEventListener('click', refreshEditor);
+  refreshSubmissionsBtn.addEventListener('click', loadSubmissions);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
 
   supabaseClient.auth.getSession().then(async ({ data }) => {
@@ -451,6 +651,7 @@
       setLockedState(true);
     }
     await refreshEditor();
+    await loadSubmissions();
   });
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
@@ -458,6 +659,7 @@
     if (session) {
       setLockedState(false);
       setEditMode(true);
+      loadSubmissions();
     } else {
       setLockedState(true);
       setEditMode(false);

@@ -1,0 +1,123 @@
+const { createClient } = require('@supabase/supabase-js');
+
+function getServiceClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: { persistSession: false }
+  });
+}
+
+function getAuthClient() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false }
+  });
+}
+
+function parseBody(request) {
+  return typeof request.body === 'string' ? JSON.parse(request.body) : (request.body || {});
+}
+
+function normalizeText(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+module.exports = async (request, response) => {
+  response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+
+  try {
+    if (request.method === 'OPTIONS') {
+      return response.status(204).end();
+    }
+
+    if (request.method === 'POST') {
+      const serviceClient = getServiceClient();
+      if (!serviceClient) {
+        return response.status(500).json({ error: 'Backend is missing Supabase configuration' });
+      }
+
+      const body = parseBody(request);
+      const submissionType = normalizeText(body.submissionType);
+      const name = normalizeText(body.name) || null;
+      const title = normalizeText(body.title) || null;
+      const message = normalizeText(body.message);
+      const metadata = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+
+      if (!submissionType || !message) {
+        return response.status(400).json({ error: 'Invalid submission payload' });
+      }
+
+      const { data, error } = await serviceClient
+        .from('form_submissions')
+        .insert({
+          submission_type: submissionType,
+          name,
+          title,
+          message,
+          metadata,
+          status: 'new'
+        })
+        .select('id, created_at')
+        .single();
+
+      if (error) {
+        return response.status(500).json({ error: error.message });
+      }
+
+      return response.status(201).json({ ok: true, id: data.id, createdAt: data.created_at });
+    }
+
+    if (request.method === 'GET') {
+      const authHeader = request.headers.authorization || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+      if (!token) {
+        return response.status(401).json({ error: 'Missing Supabase access token' });
+      }
+
+      const authClient = getAuthClient();
+      const serviceClient = getServiceClient();
+      if (!authClient || !serviceClient) {
+        return response.status(500).json({ error: 'Backend is missing Supabase configuration' });
+      }
+
+      const { data: userData, error: userError } = await authClient.auth.getUser(token);
+      if (userError || !userData?.user) {
+        return response.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const limitValue = parseInt(request.query?.limit || '100', 10);
+      const limit = Number.isFinite(limitValue) ? Math.min(Math.max(limitValue, 1), 250) : 100;
+
+      const { data, error } = await serviceClient
+        .from('form_submissions')
+        .select('id, submission_type, name, title, message, metadata, status, created_at, reviewed_at, reviewed_by')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        return response.status(500).json({ error: error.message });
+      }
+
+      return response.status(200).json({ submissions: data || [] });
+    }
+
+    return response.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    return response.status(500).json({ error: error.message || 'Unexpected backend error' });
+  }
+};

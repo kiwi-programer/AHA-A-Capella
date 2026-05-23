@@ -1180,7 +1180,7 @@
 <script src="shared/site-content.js"></script>
 
 <script>
-const BACKEND_API_BASE = 'https://YOUR-BACKEND-VERCEL-URL.vercel.app';
+const BACKEND_API_BASE = 'https://aha-a-capella-backend.vercel.app';
 
 async function hydratePublicContent() {
   try {
@@ -1223,38 +1223,90 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-function submitSong() {
+async function submitToBackend(submissionType, payload) {
+  const response = await fetch(`${BACKEND_API_BASE.replace(/\/$/, '')}/api/submissions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ submissionType, ...payload })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `Submission failed: ${response.status}`);
+  }
+
+  return data;
+}
+
+async function submitSong() {
   const title = document.getElementById('song-title').value.trim();
   const artist = document.getElementById('song-artist').value.trim();
   const diff = parseInt(document.getElementById('song-diff').value);
+  const reason = document.getElementById('song-reason').value.trim();
   if (!title || !artist) { showToast("Please fill in the song title and artist ♩"); return; }
-  document.getElementById('song-title').value = '';
-  document.getElementById('song-artist').value = '';
-  document.getElementById('song-reason').value = '';
-  document.getElementById('song-diff').value = '3';
-  showToast("Song added! ♫ Thanks for the suggestion!");
+
+  try {
+    await submitToBackend('song', {
+      title,
+      message: reason || 'No additional reason provided.',
+      metadata: { artist, difficulty: diff }
+    });
+    document.getElementById('song-title').value = '';
+    document.getElementById('song-artist').value = '';
+    document.getElementById('song-reason').value = '';
+    document.getElementById('song-diff').value = '3';
+    showToast("Song added! ♫ Thanks for the suggestion!");
+  } catch (error) {
+    showToast(error.message || 'Could not submit song suggestion.');
+  }
 }
 
 // ---- MEETUP ----
-function submitMeetup() {
+async function submitMeetup() {
   const name = document.getElementById('meetup-name').value.trim();
   const idea = document.getElementById('meetup-idea').value.trim();
+  const date = document.getElementById('meetup-date').value.trim();
+  const notes = document.getElementById('meetup-notes').value.trim();
   if (!name || !idea) { showToast("Please add your name and meetup idea ♩"); return; }
-  document.getElementById('meetup-name').value = '';
-  document.getElementById('meetup-idea').value = '';
-  document.getElementById('meetup-date').value = '';
-  document.getElementById('meetup-notes').value = '';
-  showToast("Meetup suggestion sent! 🐧 We'll be in touch!");
+
+  try {
+    await submitToBackend('meetup', {
+      name,
+      title: idea,
+      message: notes || 'No additional notes provided.',
+      metadata: { proposedDate: date }
+    });
+    document.getElementById('meetup-name').value = '';
+    document.getElementById('meetup-idea').value = '';
+    document.getElementById('meetup-date').value = '';
+    document.getElementById('meetup-notes').value = '';
+    showToast("Meetup suggestion sent! 🐧 We'll be in touch!");
+  } catch (error) {
+    showToast(error.message || 'Could not submit meetup suggestion.');
+  }
 }
 
 // ---- CONTACT ----
-function submitContact() {
+async function submitContact() {
   const name = document.getElementById('contact-name').value.trim();
+  const subject = document.getElementById('contact-subject').value;
   const msg = document.getElementById('contact-msg').value.trim();
   if (!name || !msg) { showToast("Please fill in your name and message ♩"); return; }
-  document.getElementById('contact-name').value = '';
-  document.getElementById('contact-msg').value = '';
-  showToast("Message sent! ♫ We'll get back to you soon!");
+
+  try {
+    await submitToBackend('contact', {
+      name,
+      title: subject,
+      message: msg,
+      metadata: {}
+    });
+    document.getElementById('contact-name').value = '';
+    document.getElementById('contact-msg').value = '';
+    document.getElementById('contact-subject').selectedIndex = 0;
+    showToast("Message sent! ♫ We'll get back to you soon!");
+  } catch (error) {
+    showToast(error.message || 'Could not submit contact message.');
+  }
 }
 
 function clearContact() {

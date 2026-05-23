@@ -47,3 +47,25 @@ Notes:
 
 - `SUPABASE_SERVICE_ROLE_KEY` stays server-side only.
 - `CORS_ORIGIN` falls back to `*` if it is not set.
+
+## Submissions Table
+
+File: `supabase-form-submissions.sql`
+
+Required values:
+
+- `form_submissions.id` as an identity primary key
+- `submission_type`
+- `name`
+- `title`
+- `message`
+- `metadata`
+- `status`
+- `created_at`
+- `reviewed_at`
+- `reviewed_by`
+
+Notes:
+
+- The backend writes public form submissions into `form_submissions`.
+- The admin panel reads submissions through the backend using a logged-in Supabase session.
