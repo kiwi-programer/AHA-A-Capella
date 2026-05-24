@@ -1,4 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
+const {
+  applyCors,
+  parseBody,
+  rateLimit,
+  sanitizeContent
+} = require('../lib/security');
 
 function getServiceClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -27,9 +33,9 @@ function getAuthClient() {
 }
 
 module.exports = async (request, response) => {
-  response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  response.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (!applyCors(request, response, 'POST,OPTIONS')) {
+    return response.status(403).json({ error: 'Origin not allowed' });
+  }
 
   try {
     if (request.method === 'OPTIONS') {
@@ -47,6 +53,12 @@ module.exports = async (request, response) => {
       return response.status(401).json({ error: 'Missing Supabase access token' });
     }
 
+    const saveLimit = rateLimit(request, { key: 'save', limit: 20, windowMs: 60_000 });
+    if (!saveLimit.allowed) {
+      response.setHeader('Retry-After', String(Math.max(1, Math.ceil((saveLimit.resetAt - Date.now()) / 1000))));
+      return response.status(429).json({ error: 'Too many save requests' });
+    }
+
     const authClient = getAuthClient();
     const serviceClient = getServiceClient();
     if (!authClient || !serviceClient) {
@@ -58,8 +70,8 @@ module.exports = async (request, response) => {
       return response.status(401).json({ error: 'Unauthorized' });
     }
 
-    const body = typeof request.body === 'string' ? JSON.parse(request.body) : (request.body || {});
-    const content = body.content;
+    const body = parseBody(request, 150_000);
+    const content = sanitizeContent(body.content);
 
     if (!content || typeof content !== 'object') {
       return response.status(400).json({ error: 'Invalid content payload' });

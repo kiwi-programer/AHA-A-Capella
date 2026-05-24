@@ -1,4 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
+const {
+  applyCors,
+  parseBody,
+  rateLimit,
+  normalizeText,
+  sanitizeContent
+} = require('../lib/security');
 
 function getServiceClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -26,18 +33,10 @@ function getAuthClient() {
   });
 }
 
-function parseBody(request) {
-  return typeof request.body === 'string' ? JSON.parse(request.body) : (request.body || {});
-}
-
-function normalizeText(value) {
-  return typeof value === 'string' ? value.trim() : '';
-}
-
 module.exports = async (request, response) => {
-  response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (!applyCors(request, response, 'GET,POST,OPTIONS')) {
+    return response.status(403).json({ error: 'Origin not allowed' });
+  }
 
   try {
     if (request.method === 'OPTIONS') {
@@ -50,12 +49,18 @@ module.exports = async (request, response) => {
         return response.status(500).json({ error: 'Backend is missing Supabase configuration' });
       }
 
-      const body = parseBody(request);
+      const submitLimit = rateLimit(request, { key: 'submissions-post', limit: 12, windowMs: 60_000 });
+      if (!submitLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((submitLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many form submissions' });
+      }
+
+      const body = parseBody(request, 25_000);
       const submissionType = normalizeText(body.submissionType);
       const name = normalizeText(body.name) || null;
       const title = normalizeText(body.title) || null;
       const message = normalizeText(body.message);
-      const metadata = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+      const metadata = body.metadata && typeof body.metadata === 'object' ? sanitizeContent(body.metadata) : {};
 
       if (!submissionType || !message) {
         return response.status(400).json({ error: 'Invalid submission payload' });
@@ -93,6 +98,12 @@ module.exports = async (request, response) => {
       const serviceClient = getServiceClient();
       if (!authClient || !serviceClient) {
         return response.status(500).json({ error: 'Backend is missing Supabase configuration' });
+      }
+
+      const readLimit = rateLimit(request, { key: 'submissions-get', limit: 60, windowMs: 60_000 });
+      if (!readLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((readLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many requests' });
       }
 
       const { data: userData, error: userError } = await authClient.auth.getUser(token);

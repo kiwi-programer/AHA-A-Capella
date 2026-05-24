@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const { applyCors, rateLimit } = require('../lib/security');
 
 function getSupabaseClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -14,9 +15,9 @@ function getSupabaseClient() {
 }
 
 module.exports = async (request, response) => {
-  response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  response.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (!applyCors(request, response, 'GET,OPTIONS')) {
+    return response.status(403).json({ error: 'Origin not allowed' });
+  }
 
   try {
     if (request.method === 'OPTIONS') {
@@ -25,6 +26,12 @@ module.exports = async (request, response) => {
 
     if (request.method !== 'GET') {
       return response.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const readLimit = rateLimit(request, { key: 'content-get', limit: 120, windowMs: 60_000 });
+    if (!readLimit.allowed) {
+      response.setHeader('Retry-After', String(Math.max(1, Math.ceil((readLimit.resetAt - Date.now()) / 1000))));
+      return response.status(429).json({ error: 'Too many requests' });
     }
 
     const supabase = getSupabaseClient();

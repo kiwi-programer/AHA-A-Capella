@@ -52,7 +52,7 @@ Notes:
 
 ## Submissions Table
 
-File: `supabase-form-submissions.sql`
+File: `sql/supabase-form-submissions.sql`
 
 Required values:
 
@@ -74,7 +74,7 @@ Notes:
 
 ## Admin Users Table
 
-File: `supabase-admin-users.sql`
+File: `sql/supabase-admin-users.sql`
 
 Required values:
 

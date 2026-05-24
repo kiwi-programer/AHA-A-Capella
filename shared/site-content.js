@@ -1,4 +1,9 @@
 (function () {
+  const ALLOWED_TAGS = new Set(['span', 'strong', 'em', 'b', 'i', 'u', 'br', 'small', 'a']);
+  const ALLOWED_ATTRS = {
+    a: new Set(['href', 'title', 'target', 'rel'])
+  };
+
   const CONTENT_DEFAULTS = {
     heroTitle: 'Welcome to <span>AHA!</span>',
     heroSubtitle: 'A Cappella Harmonic Association',
@@ -47,8 +52,104 @@
     return Array.from(root.querySelectorAll('[data-edit-key]'));
   }
 
+  function escapeHTML(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function sanitizeHtmlFragment(html) {
+    if (typeof document === 'undefined') {
+      return escapeHTML(html);
+    }
+
+    const template = document.createElement('template');
+    template.innerHTML = String(html);
+
+    const cleanNode = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return document.createTextNode(node.textContent || '');
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return document.createDocumentFragment();
+      }
+
+      const tagName = node.tagName.toLowerCase();
+      if (!ALLOWED_TAGS.has(tagName)) {
+        return document.createTextNode(node.textContent || '');
+      }
+
+      const cleaned = document.createElement(tagName);
+      Array.from(node.attributes).forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const allowedAttrs = ALLOWED_ATTRS[tagName] || new Set();
+
+        if (!allowedAttrs.has(name)) {
+          return;
+        }
+
+        if (tagName === 'a' && name === 'href') {
+          const value = attribute.value.trim();
+          if (/^javascript:/i.test(value) || /^data:/i.test(value)) {
+            return;
+          }
+        }
+
+        cleaned.setAttribute(name, attribute.value);
+      });
+
+      if (tagName === 'a') {
+        const target = cleaned.getAttribute('target');
+        if (target === '_blank') {
+          cleaned.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+
+      Array.from(node.childNodes).forEach((child) => {
+        cleaned.appendChild(cleanNode(child));
+      });
+
+      return cleaned;
+    };
+
+    const fragment = document.createDocumentFragment();
+    Array.from(template.content.childNodes).forEach((child) => {
+      fragment.appendChild(cleanNode(child));
+    });
+
+    const wrapper = document.createElement('div');
+    wrapper.appendChild(fragment);
+    return wrapper.innerHTML;
+  }
+
+  function sanitizeValue(value) {
+    if (Array.isArray(value)) {
+      return value.map((item) => sanitizeValue(item));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, nestedValue]) => [key, sanitizeValue(nestedValue)])
+      );
+    }
+
+    if (typeof value === 'string') {
+      return sanitizeHtmlFragment(value);
+    }
+
+    return value;
+  }
+
+  function sanitizeContent(content = {}) {
+    return sanitizeValue(content);
+  }
+
   function applyContent(content = {}, root = document) {
-    const merged = { ...CONTENT_DEFAULTS, ...content };
+    const merged = sanitizeContent({ ...CONTENT_DEFAULTS, ...content });
     getElements(root).forEach((element) => {
       const key = element.dataset.editKey;
       if (Object.prototype.hasOwnProperty.call(merged, key)) {
@@ -61,9 +162,9 @@
   function collectContent(root = document) {
     const content = {};
     getElements(root).forEach((element) => {
-      content[element.dataset.editKey] = element.innerHTML;
+      content[element.dataset.editKey] = sanitizeHtmlFragment(element.innerHTML);
     });
-    return content;
+    return sanitizeContent(content);
   }
 
   async function loadContent(apiBase) {
@@ -86,7 +187,7 @@
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`
       },
-      body: JSON.stringify({ content })
+      body: JSON.stringify({ content: sanitizeContent(content) })
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -104,10 +205,13 @@
 
   window.AHASiteContent = {
     defaults: CONTENT_DEFAULTS,
+    escapeHTML,
     applyContent,
     collectContent,
     loadContent,
     saveContent,
+    sanitizeContent,
+    sanitizeHtmlFragment,
     setEditable,
     getElements
   };

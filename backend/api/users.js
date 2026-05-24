@@ -1,4 +1,10 @@
 const { createClient } = require('@supabase/supabase-js');
+const {
+  applyCors,
+  parseBody,
+  rateLimit,
+  normalizeText
+} = require('../lib/security');
 
 function getServiceClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -24,10 +30,6 @@ function getAuthClient() {
   return createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false }
   });
-}
-
-function parseBody(request) {
-  return typeof request.body === 'string' ? JSON.parse(request.body) : (request.body || {});
 }
 
 async function getCurrentUser(request, authClient) {
@@ -108,9 +110,9 @@ function isAlreadyExistsAuthError(message = '') {
 const ADMIN_VERIFICATION_REDIRECT_URL = 'https://aha-a-capella-admin.vercel.app/';
 
 module.exports = async (request, response) => {
-  response.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
-  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  if (!applyCors(request, response, 'GET,POST,PATCH,DELETE,OPTIONS')) {
+    return response.status(403).json({ error: 'Origin not allowed' });
+  }
 
   try {
     if (request.method === 'OPTIONS') {
@@ -138,6 +140,12 @@ module.exports = async (request, response) => {
 
     if (request.method === 'GET') {
       const scope = request.query?.scope || '';
+
+      const readLimit = rateLimit(request, { key: 'users-get', limit: 60, windowMs: 60_000 });
+      if (!readLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((readLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many requests' });
+      }
 
       if (scope === 'self') {
         return response.status(200).json({
@@ -171,10 +179,16 @@ module.exports = async (request, response) => {
     }
 
     if (request.method === 'POST') {
+      const createLimit = rateLimit(request, { key: 'users-post', limit: 20, windowMs: 60_000 });
+      if (!createLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((createLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many requests' });
+      }
+
       const body = parseBody(request);
-      const email = (typeof body.email === 'string' ? body.email.trim() : '').toLowerCase();
-      const displayName = typeof body.displayName === 'string' ? body.displayName.trim() : null;
-      const role = typeof body.role === 'string' ? body.role.trim() : 'editor';
+      const email = normalizeText(body.email, 320).toLowerCase();
+      const displayName = normalizeText(body.displayName, 120) || null;
+      const role = normalizeText(body.role, 20) || 'editor';
       const isActive = typeof body.isActive === 'boolean' ? body.isActive : true;
       const sendInvite = body.sendInvite !== false;
 
@@ -217,19 +231,26 @@ module.exports = async (request, response) => {
     }
 
     if (request.method === 'PATCH') {
+      const updateLimit = rateLimit(request, { key: 'users-patch', limit: 20, windowMs: 60_000 });
+      if (!updateLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((updateLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many requests' });
+      }
+
       const body = parseBody(request);
       const id = body.id;
       const updates = {};
 
       if (typeof body.displayName === 'string') {
-        updates.display_name = body.displayName.trim() || null;
+        updates.display_name = normalizeText(body.displayName, 120) || null;
       }
 
       if (typeof body.role === 'string') {
-        if (!['owner', 'admin', 'editor'].includes(body.role)) {
+        const role = normalizeText(body.role, 20);
+        if (!['owner', 'admin', 'editor'].includes(role)) {
           return response.status(400).json({ error: 'Invalid role' });
         }
-        updates.role = body.role;
+        updates.role = role;
       }
 
       if (typeof body.isActive === 'boolean') {
@@ -257,6 +278,12 @@ module.exports = async (request, response) => {
     }
 
     if (request.method === 'DELETE') {
+      const deleteLimit = rateLimit(request, { key: 'users-delete', limit: 10, windowMs: 60_000 });
+      if (!deleteLimit.allowed) {
+        response.setHeader('Retry-After', String(Math.max(1, Math.ceil((deleteLimit.resetAt - Date.now()) / 1000))));
+        return response.status(429).json({ error: 'Too many requests' });
+      }
+
       const id = request.query?.id;
       if (!id) {
         return response.status(400).json({ error: 'Missing id' });
