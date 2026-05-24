@@ -26,6 +26,7 @@
     font-family: 'DynaPuff', cursive;
     background: linear-gradient(180deg, #f6f2eb 0%, #f0eeeb 40%, #ebe6df 100%);
     color: var(--charcoal);
+    overflow-x: hidden;
   }
 
   .login-screen {
@@ -184,7 +185,13 @@
   .dot.on { background: #2f8f4e; }
 
   .editor-area {
-    padding: 1.5rem;
+    padding: clamp(0.9rem, 1.2vw + 0.5rem, 1.75rem);
+  }
+
+  .editor-area > * {
+    max-width: 1500px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .editor-header {
@@ -572,7 +579,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-height: 420px;
+    max-height: min(52vh, 520px);
     overflow: auto;
   }
 
@@ -813,6 +820,12 @@
 
   .hidden { display: none !important; }
 
+  @media (max-width: 1380px) {
+    .shell {
+      grid-template-columns: 290px 1fr;
+    }
+  }
+
   @media (max-width: 1100px) {
     .shell { grid-template-columns: 1fr; }
     .sidebar {
@@ -843,8 +856,21 @@
     }
   }
 
+  @media (max-width: 900px) {
+    .editor-toolbar {
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
+
   @media (max-width: 640px) {
     .editor-area { padding: 1rem; }
+    .editor-toolbar {
+      grid-template-columns: 1fr;
+    }
+    .submissions-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
     .submissions-controls {
       grid-template-columns: 1fr;
     }
@@ -858,8 +884,39 @@
     .user-row-controls {
       flex-wrap: wrap;
     }
+    .modal-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .modal-header .user-row-controls {
+      width: 100%;
+    }
+    .modal-header .small-btn {
+      flex: 1 1 0;
+    }
     .editor-preview-frame {
       min-height: 60vh;
+    }
+  }
+
+  @media (max-width: 420px) {
+    .sidebar {
+      padding: 1rem;
+    }
+    .panel {
+      border-radius: 16px;
+      padding: 0.85rem;
+    }
+    .group {
+      border-radius: 16px;
+      padding: 0.85rem;
+    }
+    .submissions-list {
+      max-height: 56vh;
+    }
+    .small-btn {
+      width: 100%;
+      text-align: center;
     }
   }
 </style>
@@ -1955,7 +2012,10 @@
         }
       });
 
-      controls.append(activeLabel, saveUserBtn);
+      if (!protectedOwner) {
+        controls.append(activeLabel);
+      }
+      controls.append(saveUserBtn);
       if (!protectedOwner) {
         controls.append(removeUserBtn);
       }
