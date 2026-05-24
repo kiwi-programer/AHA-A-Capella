@@ -196,6 +196,10 @@ module.exports = async (request, response) => {
         return response.status(400).json({ error: 'Invalid user payload' });
       }
 
+      if (role === 'owner' && access.role !== 'owner') {
+        return response.status(403).json({ error: 'Only owners can add owner users' });
+      }
+
       let authProvisioned = false;
       if (sendInvite) {
         const { error: inviteError } = await serviceClient.auth.admin.inviteUserByEmail(email, {
@@ -241,6 +245,28 @@ module.exports = async (request, response) => {
       const id = body.id;
       const updates = {};
 
+      if (!id) {
+        return response.status(400).json({ error: 'Invalid update payload' });
+      }
+
+      const { data: targetUser, error: targetError } = await serviceClient
+        .from('admin_users')
+        .select('id, role')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (targetError) {
+        return response.status(500).json({ error: targetError.message });
+      }
+
+      if (!targetUser) {
+        return response.status(404).json({ error: 'User not found' });
+      }
+
+      if (targetUser.role === 'owner' && access.role !== 'owner') {
+        return response.status(403).json({ error: 'Only owners can modify owner users' });
+      }
+
       if (typeof body.displayName === 'string') {
         updates.display_name = normalizeText(body.displayName, 120) || null;
       }
@@ -250,6 +276,11 @@ module.exports = async (request, response) => {
         if (!['owner', 'admin', 'editor'].includes(role)) {
           return response.status(400).json({ error: 'Invalid role' });
         }
+
+        if (role === 'owner' && access.role !== 'owner') {
+          return response.status(403).json({ error: 'Only owners can assign owner role' });
+        }
+
         updates.role = role;
       }
 
@@ -257,7 +288,7 @@ module.exports = async (request, response) => {
         updates.is_active = body.isActive;
       }
 
-      if (!id || !Object.keys(updates).length) {
+      if (!Object.keys(updates).length) {
         return response.status(400).json({ error: 'Invalid update payload' });
       }
 
@@ -291,12 +322,20 @@ module.exports = async (request, response) => {
 
       const { data: record, error: recordError } = await serviceClient
         .from('admin_users')
-        .select('id, email')
+        .select('id, email, role')
         .eq('id', id)
         .maybeSingle();
 
       if (recordError) {
         return response.status(500).json({ error: recordError.message });
+      }
+
+      if (!record) {
+        return response.status(404).json({ error: 'User not found' });
+      }
+
+      if (record.role === 'owner' && access.role !== 'owner') {
+        return response.status(403).json({ error: 'Only owners can remove owner users' });
       }
 
       if (record?.email) {

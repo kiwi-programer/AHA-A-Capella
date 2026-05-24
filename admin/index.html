@@ -581,6 +581,15 @@
     border: 2px solid var(--marble-dark);
     border-radius: 16px;
     padding: 0.9rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .submission-card:hover,
+  .submission-card:focus {
+    border-color: var(--gold);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    outline: none;
   }
 
   .submission-topline {
@@ -638,6 +647,90 @@
     color: var(--charcoal-light);
   }
 
+  .users-create-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 0.6rem;
+    align-items: end;
+    margin: 0.9rem 0;
+  }
+
+  .role-select {
+    width: 100%;
+    border: 2px solid var(--marble-dark);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: var(--cream);
+    color: var(--charcoal);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: grid;
+    place-items: center;
+    z-index: 2000;
+    padding: 1rem;
+  }
+
+  .modal {
+    width: min(720px, 100%);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    background: #fff;
+    border: 2px solid var(--marble-dark);
+    border-radius: 18px;
+    padding: 1rem;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  .modal-meta {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--charcoal-light);
+    line-height: 1.6;
+  }
+
+  .modal-block {
+    border: 2px solid var(--marble-dark);
+    border-radius: 12px;
+    padding: 0.75rem;
+    margin-top: 0.7rem;
+    background: #faf8f5;
+  }
+
+  .modal-block h4 {
+    margin: 0 0 0.45rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--charcoal-mid);
+  }
+
+  .modal-block p,
+  .modal-block pre {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   .user-row {
     display: grid;
     grid-template-columns: 1.3fr 0.9fr auto;
@@ -685,14 +778,51 @@
 
   .hidden { display: none !important; }
 
-  @media (max-width: 960px) {
+  @media (max-width: 1100px) {
     .shell { grid-template-columns: 1fr; }
-    .sidebar { position: relative; height: auto; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      border-right: none;
+      border-bottom: 2px solid var(--marble-dark);
+    }
+    .editor-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .editor-toolbar {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 0.5rem;
+    }
+    .editor-toolbar .btn {
+      width: 100%;
+      min-width: 0;
+    }
+    .users-create-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .editor-preview-frame {
+      min-height: 70vh;
+    }
   }
 
   @media (max-width: 640px) {
     .editor-area { padding: 1rem; }
-    .editor-toolbar .btn { width: 100%; }
+    .users-create-grid {
+      grid-template-columns: 1fr;
+    }
+    .user-row {
+      grid-template-columns: 1fr;
+      gap: 0.65rem;
+    }
+    .user-row-controls {
+      flex-wrap: wrap;
+    }
+    .editor-preview-frame {
+      min-height: 60vh;
+    }
   }
 </style>
 <script src="shared/site-content.js"></script>
@@ -790,7 +920,7 @@
 
           <p id="usersStatus" style="margin-top:0.75rem">No active session.</p>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.6rem;align-items:end;margin:0.9rem 0;">
+          <div class="users-create-grid">
             <div>
               <label for="newUserEmail">Email</label>
               <input id="newUserEmail" type="email" placeholder="member@example.com">
@@ -801,7 +931,7 @@
             </div>
             <div>
               <label for="newUserRole">Role</label>
-              <select id="newUserRole" style="width:100%;border:2px solid var(--marble-dark);border-radius:12px;padding:0.8rem 1rem;font-family:inherit;font-size:0.85rem;background:var(--cream);color:var(--charcoal);">
+              <select id="newUserRole" class="role-select">
                 <option value="editor">Editor</option>
                 <option value="admin">Admin</option>
                 <option value="owner">Owner</option>
@@ -816,6 +946,24 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="submissionModalBackdrop" aria-hidden="true">
+    <article class="modal" role="dialog" aria-modal="true" aria-labelledby="submissionModalTitle">
+      <div class="modal-header">
+        <h3 class="modal-title" id="submissionModalTitle">Submission Details</h3>
+        <button class="small-btn" id="closeSubmissionModalBtn" type="button">Close</button>
+      </div>
+      <p class="modal-meta" id="submissionModalMeta"></p>
+      <div class="modal-block">
+        <h4>Message</h4>
+        <p id="submissionModalMessage"></p>
+      </div>
+      <div class="modal-block">
+        <h4>Metadata</h4>
+        <pre id="submissionModalMetadata"></pre>
+      </div>
+    </article>
   </div>
 
 <script>
@@ -854,6 +1002,12 @@
   const newUserEmail = document.getElementById('newUserEmail');
   const newUserName = document.getElementById('newUserName');
   const newUserRole = document.getElementById('newUserRole');
+  const submissionModalBackdrop = document.getElementById('submissionModalBackdrop');
+  const closeSubmissionModalBtn = document.getElementById('closeSubmissionModalBtn');
+  const submissionModalTitle = document.getElementById('submissionModalTitle');
+  const submissionModalMeta = document.getElementById('submissionModalMeta');
+  const submissionModalMessage = document.getElementById('submissionModalMessage');
+  const submissionModalMetadata = document.getElementById('submissionModalMetadata');
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const statusCopy = document.getElementById('statusCopy');
@@ -866,6 +1020,7 @@
   let activeView = 'content';
   let currentContent = { ...window.AHASiteContent.defaults };
   let canManageUsers = false;
+  let currentUserRole = 'editor';
   let editorFrame = null;
   let editorPage = 'home';
 
@@ -1368,15 +1523,38 @@
     try {
       const data = await fetchBackend('/api/users?scope=self');
       const me = data.me || {};
+      currentUserRole = me.role || 'editor';
       canManageUsers = !!me.canManageUsers;
+      syncOwnerRoleOption();
       viewUsersBtn.classList.toggle('hidden', !canManageUsers);
       if (!canManageUsers && activeView === 'users') {
         setActiveView('content');
       }
     } catch (error) {
+      currentUserRole = 'editor';
       canManageUsers = false;
+      syncOwnerRoleOption();
       viewUsersBtn.classList.add('hidden');
     }
+  }
+
+  function syncOwnerRoleOption() {
+    const ownerOption = newUserRole.querySelector('option[value="owner"]');
+    if (!ownerOption) {
+      return;
+    }
+
+    if (currentUserRole === 'owner') {
+      ownerOption.disabled = false;
+      ownerOption.hidden = false;
+      return;
+    }
+
+    if (newUserRole.value === 'owner') {
+      newUserRole.value = 'admin';
+    }
+    ownerOption.disabled = true;
+    ownerOption.hidden = true;
   }
 
   function setActiveView(view) {
@@ -1472,9 +1650,43 @@
       message.className = 'submission-message';
       message.textContent = submission.message || '(No message provided)';
 
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', `Open submission ${submission.title || submission.name || 'details'}`);
+      card.addEventListener('click', () => openSubmissionDetail(submission));
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openSubmissionDetail(submission);
+        }
+      });
+
       card.append(topLine, title, meta, message);
       submissionsList.appendChild(card);
     });
+  }
+
+  function openSubmissionDetail(submission) {
+    submissionModalTitle.textContent = submission.title || submission.name || 'Submission Details';
+    const metaBits = [
+      `Type: ${submission.submission_type || 'submission'}`,
+      `From: ${submission.name || 'Unknown'}`,
+      `Status: ${submission.status || 'new'}`,
+      `Received: ${formatSubmissionDate(submission.created_at)}`
+    ];
+    if (submission.reviewed_by) {
+      metaBits.push(`Reviewed by: ${submission.reviewed_by}`);
+    }
+    submissionModalMeta.textContent = metaBits.join(' · ');
+    submissionModalMessage.textContent = submission.message || '(No message provided)';
+    submissionModalMetadata.textContent = JSON.stringify(submission.metadata || {}, null, 2);
+    submissionModalBackdrop.classList.remove('hidden');
+    submissionModalBackdrop.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeSubmissionDetail() {
+    submissionModalBackdrop.classList.add('hidden');
+    submissionModalBackdrop.setAttribute('aria-hidden', 'true');
   }
 
   async function loadSubmissions() {
@@ -1539,6 +1751,19 @@
       roleSelect.innerHTML = '<option value="editor">Editor</option><option value="admin">Admin</option><option value="owner">Owner</option>';
       roleSelect.value = user.role || 'editor';
 
+      if (currentUserRole !== 'owner') {
+        const ownerOption = roleSelect.querySelector('option[value="owner"]');
+        if (ownerOption) {
+          ownerOption.disabled = true;
+          ownerOption.hidden = true;
+        }
+      }
+
+      const protectedOwner = user.role === 'owner' && currentUserRole !== 'owner';
+      if (protectedOwner) {
+        roleSelect.disabled = true;
+      }
+
       const controls = document.createElement('div');
       controls.className = 'user-row-controls';
 
@@ -1561,6 +1786,10 @@
       saveUserBtn.className = 'small-btn';
       saveUserBtn.textContent = 'Save';
       saveUserBtn.addEventListener('click', async () => {
+        if (protectedOwner) {
+          usersStatus.textContent = 'Only owners can modify owner users.';
+          return;
+        }
         try {
           await fetchBackend('/api/users', {
             method: 'PATCH',
@@ -1581,7 +1810,12 @@
       const removeUserBtn = document.createElement('button');
       removeUserBtn.className = 'small-btn';
       removeUserBtn.textContent = 'Remove';
+      removeUserBtn.disabled = protectedOwner;
       removeUserBtn.addEventListener('click', async () => {
+        if (protectedOwner) {
+          usersStatus.textContent = 'Only owners can remove owner users.';
+          return;
+        }
         try {
           await fetchBackend(`/api/users?id=${encodeURIComponent(String(user.id))}`, { method: 'DELETE' });
           usersStatus.textContent = `Removed ${user.email}.`;
@@ -1624,6 +1858,11 @@
 
     if (!email) {
       usersStatus.textContent = 'Email is required.';
+      return;
+    }
+
+    if (role === 'owner' && currentUserRole !== 'owner') {
+      usersStatus.textContent = 'Only owners can add owner users.';
       return;
     }
 
@@ -1700,6 +1939,17 @@
   viewContentBtn.addEventListener('click', () => setActiveView('content'));
   viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
   viewUsersBtn.addEventListener('click', () => setActiveView('users'));
+  closeSubmissionModalBtn.addEventListener('click', closeSubmissionDetail);
+  submissionModalBackdrop.addEventListener('click', (event) => {
+    if (event.target === submissionModalBackdrop) {
+      closeSubmissionDetail();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !submissionModalBackdrop.classList.contains('hidden')) {
+      closeSubmissionDetail();
+    }
+  });
   window.addEventListener('message', handleEditorMessage);
 
   passwordInput.addEventListener('keydown', (event) => {
