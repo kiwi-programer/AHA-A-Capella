@@ -576,6 +576,25 @@
     overflow: auto;
   }
 
+  .submissions-controls {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+    margin: 0.7rem 0 0.9rem;
+  }
+
+  .submissions-search,
+  .submissions-filter {
+    width: 100%;
+    border: 2px solid var(--marble-dark);
+    border-radius: 12px;
+    padding: 0.72rem 0.9rem;
+    font-family: inherit;
+    font-size: 0.82rem;
+    background: var(--cream);
+    color: var(--charcoal);
+  }
+
   .submission-card {
     background: var(--white);
     border: 2px solid var(--marble-dark);
@@ -636,6 +655,12 @@
     font-size: 0.82rem;
     line-height: 1.55;
     white-space: pre-wrap;
+  }
+
+  .submission-actions {
+    margin-top: 0.7rem;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .submissions-empty {
@@ -776,6 +801,16 @@
     border-color: var(--gold);
   }
 
+  .small-btn.danger {
+    border-color: #c85b52;
+    background: #fff5f4;
+    color: #8f2d26;
+  }
+
+  .small-btn.danger:hover {
+    border-color: #8f2d26;
+  }
+
   .hidden { display: none !important; }
 
   @media (max-width: 1100px) {
@@ -810,6 +845,9 @@
 
   @media (max-width: 640px) {
     .editor-area { padding: 1rem; }
+    .submissions-controls {
+      grid-template-columns: 1fr;
+    }
     .users-create-grid {
       grid-template-columns: 1fr;
     }
@@ -903,6 +941,15 @@
             </div>
             <button class="btn secondary" id="refreshSubmissionsBtn" type="button">Refresh</button>
           </div>
+          <div class="submissions-controls">
+            <input id="submissionsSearchInput" class="submissions-search" type="search" placeholder="Search by name, title, message, metadata">
+            <select id="submissionsTypeFilter" class="submissions-filter">
+              <option value="all">All types</option>
+              <option value="song">Song</option>
+              <option value="meetup">Meetup</option>
+              <option value="contact">Contact</option>
+            </select>
+          </div>
           <p id="submissionsStatus" style="margin-top:0.75rem">No active session.</p>
           <div class="submissions-list" id="submissionsList"></div>
         </div>
@@ -952,7 +999,10 @@
     <article class="modal" role="dialog" aria-modal="true" aria-labelledby="submissionModalTitle">
       <div class="modal-header">
         <h3 class="modal-title" id="submissionModalTitle">Submission Details</h3>
-        <button class="small-btn" id="closeSubmissionModalBtn" type="button">Close</button>
+        <div class="user-row-controls">
+          <button class="small-btn danger" id="deleteSubmissionModalBtn" type="button">Delete</button>
+          <button class="small-btn" id="closeSubmissionModalBtn" type="button">Close</button>
+        </div>
       </div>
       <p class="modal-meta" id="submissionModalMeta"></p>
       <div class="modal-block">
@@ -993,6 +1043,8 @@
   const submissionsCount = document.getElementById('submissionsCount');
   const submissionsStatus = document.getElementById('submissionsStatus');
   const submissionsList = document.getElementById('submissionsList');
+  const submissionsSearchInput = document.getElementById('submissionsSearchInput');
+  const submissionsTypeFilter = document.getElementById('submissionsTypeFilter');
   const refreshSubmissionsBtn = document.getElementById('refreshSubmissionsBtn');
   const usersCount = document.getElementById('usersCount');
   const usersStatus = document.getElementById('usersStatus');
@@ -1003,6 +1055,7 @@
   const newUserName = document.getElementById('newUserName');
   const newUserRole = document.getElementById('newUserRole');
   const submissionModalBackdrop = document.getElementById('submissionModalBackdrop');
+  const deleteSubmissionModalBtn = document.getElementById('deleteSubmissionModalBtn');
   const closeSubmissionModalBtn = document.getElementById('closeSubmissionModalBtn');
   const submissionModalTitle = document.getElementById('submissionModalTitle');
   const submissionModalMeta = document.getElementById('submissionModalMeta');
@@ -1019,6 +1072,10 @@
   let editModeEnabled = false;
   let activeView = 'content';
   let currentContent = { ...window.AHASiteContent.defaults };
+  let allSubmissions = [];
+  let submissionSearchQuery = '';
+  let submissionTypeQuery = 'all';
+  let activeSubmissionId = null;
   let canManageUsers = false;
   let currentUserRole = 'editor';
   let editorFrame = null;
@@ -1524,7 +1581,7 @@
       const data = await fetchBackend('/api/users?scope=self');
       const me = data.me || {};
       currentUserRole = me.role || 'editor';
-      canManageUsers = !!me.canManageUsers;
+      canManageUsers = currentUserRole !== 'editor' && !!me.canManageUsers;
       syncOwnerRoleOption();
       viewUsersBtn.classList.toggle('hidden', !canManageUsers);
       if (!canManageUsers && activeView === 'users') {
@@ -1605,11 +1662,41 @@
     return date.toLocaleString();
   }
 
-  function renderSubmissions(submissions = []) {
-    submissionsCount.textContent = `${submissions.length} item${submissions.length === 1 ? '' : 's'}`;
+  function getFilteredSubmissions() {
+    return allSubmissions.filter((submission) => {
+      if (submissionTypeQuery !== 'all' && submission.submission_type !== submissionTypeQuery) {
+        return false;
+      }
+
+      if (!submissionSearchQuery) {
+        return true;
+      }
+
+      const haystack = [
+        submission.submission_type,
+        submission.name,
+        submission.title,
+        submission.message,
+        JSON.stringify(submission.metadata || {})
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(submissionSearchQuery);
+    });
+  }
+
+  function renderSubmissions() {
+    const submissions = getFilteredSubmissions();
+    submissionsCount.textContent = allSubmissions.length === submissions.length
+      ? `${submissions.length} item${submissions.length === 1 ? '' : 's'}`
+      : `${submissions.length} of ${allSubmissions.length} items`;
 
     if (!submissions.length) {
-      submissionsList.innerHTML = '<div class="submissions-empty">No submissions yet.</div>';
+      submissionsList.innerHTML = allSubmissions.length
+        ? '<div class="submissions-empty">No submissions match your search/filter.</div>'
+        : '<div class="submissions-empty">No submissions yet.</div>';
       return;
     }
 
@@ -1650,6 +1737,20 @@
       message.className = 'submission-message';
       message.textContent = submission.message || '(No message provided)';
 
+      const actions = document.createElement('div');
+      actions.className = 'submission-actions';
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'small-btn danger';
+      deleteButton.textContent = 'Delete';
+      deleteButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        await handleDeleteSubmission(submission.id);
+      });
+      actions.appendChild(deleteButton);
+
       card.tabIndex = 0;
       card.setAttribute('role', 'button');
       card.setAttribute('aria-label', `Open submission ${submission.title || submission.name || 'details'}`);
@@ -1661,12 +1762,14 @@
         }
       });
 
-      card.append(topLine, title, meta, message);
+      card.append(topLine, title, meta, message, actions);
       submissionsList.appendChild(card);
     });
   }
 
   function openSubmissionDetail(submission) {
+    activeSubmissionId = submission.id;
+    deleteSubmissionModalBtn.disabled = false;
     submissionModalTitle.textContent = submission.title || submission.name || 'Submission Details';
     const metaBits = [
       `Type: ${submission.submission_type || 'submission'}`,
@@ -1685,8 +1788,34 @@
   }
 
   function closeSubmissionDetail() {
+    activeSubmissionId = null;
     submissionModalBackdrop.classList.add('hidden');
     submissionModalBackdrop.setAttribute('aria-hidden', 'true');
+  }
+
+  async function handleDeleteSubmission(submissionId = activeSubmissionId) {
+    if (!submissionId) {
+      return;
+    }
+
+    const confirmed = window.confirm('Delete this submission permanently?');
+    if (!confirmed) {
+      return;
+    }
+
+    submissionsStatus.textContent = 'Deleting submission...';
+    deleteSubmissionModalBtn.disabled = true;
+
+    try {
+      await fetchBackend(`/api/submissions?id=${encodeURIComponent(String(submissionId))}`, { method: 'DELETE' });
+      closeSubmissionDetail();
+      allSubmissions = allSubmissions.filter((submission) => String(submission.id) !== String(submissionId));
+      renderSubmissions();
+      submissionsStatus.textContent = 'Submission deleted.';
+    } catch (error) {
+      submissionsStatus.textContent = error.message;
+      deleteSubmissionModalBtn.disabled = false;
+    }
   }
 
   async function loadSubmissions() {
@@ -1711,14 +1840,15 @@
         throw new Error(data.error || `Failed to load submissions: ${response.status}`);
       }
 
-      const submissions = data.submissions || [];
-      renderSubmissions(submissions);
-      submissionsStatus.textContent = submissions.length
-        ? `Loaded ${submissions.length} submission${submissions.length === 1 ? '' : 's'}.`
+      allSubmissions = data.submissions || [];
+      renderSubmissions();
+      submissionsStatus.textContent = allSubmissions.length
+        ? `Loaded ${allSubmissions.length} submission${allSubmissions.length === 1 ? '' : 's'}.`
         : 'No submissions yet.';
     } catch (error) {
+      allSubmissions = [];
       submissionsStatus.textContent = error.message;
-      renderSubmissions([]);
+      renderSubmissions();
     }
   }
 
@@ -1825,7 +1955,10 @@
         }
       });
 
-      controls.append(activeLabel, saveUserBtn, removeUserBtn);
+      controls.append(activeLabel, saveUserBtn);
+      if (!protectedOwner) {
+        controls.append(removeUserBtn);
+      }
       row.append(identity, roleSelect, controls);
       usersList.appendChild(row);
     });
@@ -1933,12 +2066,21 @@
   saveBtn.addEventListener('click', handleSave);
   reloadBtn.addEventListener('click', refreshEditor);
   refreshSubmissionsBtn.addEventListener('click', loadSubmissions);
+  submissionsSearchInput.addEventListener('input', () => {
+    submissionSearchQuery = submissionsSearchInput.value.trim().toLowerCase();
+    renderSubmissions();
+  });
+  submissionsTypeFilter.addEventListener('change', () => {
+    submissionTypeQuery = submissionsTypeFilter.value;
+    renderSubmissions();
+  });
   refreshUsersBtn.addEventListener('click', loadUsers);
   addUserBtn.addEventListener('click', handleAddUser);
   toggleEditBtn.addEventListener('click', () => setEditMode(!editModeEnabled));
   viewContentBtn.addEventListener('click', () => setActiveView('content'));
   viewFormsBtn.addEventListener('click', () => setActiveView('forms'));
   viewUsersBtn.addEventListener('click', () => setActiveView('users'));
+  deleteSubmissionModalBtn.addEventListener('click', () => handleDeleteSubmission());
   closeSubmissionModalBtn.addEventListener('click', closeSubmissionDetail);
   submissionModalBackdrop.addEventListener('click', (event) => {
     if (event.target === submissionModalBackdrop) {
