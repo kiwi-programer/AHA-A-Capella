@@ -126,9 +126,8 @@ Important note: the current rate limiting is best-effort in serverless runtime m
 
 ## Admin Invite Flow
 
-The admin invite flow uses `invite-email.html` as the email template structure and redirects verification to:
-
-- `https://aha-a-capella-admin.vercel.app/`
+The admin invite flow uses `invite-email.html` as the email template structure and redirects verification to
+`ADMIN_SIGNIN_URL` (or `SUPABASE_INVITE_REDIRECT_URL`).
 
 ## Editing Flow
 

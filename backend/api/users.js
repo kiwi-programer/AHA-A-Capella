@@ -107,7 +107,9 @@ function isAlreadyExistsAuthError(message = '') {
   );
 }
 
-const ADMIN_VERIFICATION_REDIRECT_URL = 'https://aha-a-capella-admin.vercel.app/';
+const ADMIN_VERIFICATION_REDIRECT_URL = process.env.ADMIN_SIGNIN_URL
+  || process.env.SUPABASE_INVITE_REDIRECT_URL
+  || 'https://aha-a-capella-admin.vercel.app/';
 
 module.exports = async (request, response) => {
   if (!applyCors(request, response, 'GET,POST,PATCH,DELETE,OPTIONS')) {
