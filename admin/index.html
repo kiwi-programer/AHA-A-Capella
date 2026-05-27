@@ -954,10 +954,8 @@
         <div style="height:1rem"></div>
 
         <button class="btn" id="loginBtn" type="button">Sign in</button>
-        <div style="height:0.5rem"></div>
-        <button class="btn secondary" id="forgotPasswordBtn" type="button">Send password reset link</button>
+        <p class="login-note">Use the invite link from your email to set your password the first time.</p>
         <p class="login-error" id="loginError"></p>
-        <p class="login-note" id="passwordResetStatus"></p>
       </div>
 
       <div id="passwordSetupForm" class="hidden">
@@ -1119,8 +1117,6 @@
   const appShell = document.getElementById('appShell');
   const loginError = document.getElementById('loginError');
   const loginForm = document.getElementById('loginForm');
-  const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
-  const passwordResetStatus = document.getElementById('passwordResetStatus');
   const passwordSetupForm = document.getElementById('passwordSetupForm');
   const passwordSetupTitle = document.getElementById('passwordSetupTitle');
   const passwordSetupCopy = document.getElementById('passwordSetupCopy');
@@ -1709,7 +1705,6 @@
       usersCount.textContent = '0 users';
       usersList.innerHTML = '';
       loginError.textContent = '';
-      passwordResetStatus.textContent = '';
       passwordSetupError.textContent = '';
       passwordSetupStatus.textContent = '';
       setPasswordSetupState(false);
@@ -2196,26 +2191,6 @@
     }
   }
 
-  async function handlePasswordReset() {
-    const email = emailInput.value.trim();
-    if (!email) {
-      passwordResetStatus.textContent = 'Enter your email to receive a reset link.';
-      return;
-    }
-
-    loginError.textContent = '';
-    passwordResetStatus.textContent = '';
-    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: AUTH_REDIRECT_URL
-    });
-    if (error) {
-      passwordResetStatus.textContent = error.message;
-      return;
-    }
-
-    passwordResetStatus.textContent = 'Check your inbox for the password reset link.';
-  }
-
   async function handlePasswordUpdate() {
     const password = newPasswordInput.value.trim();
     const confirmPassword = confirmPasswordInput.value.trim();
@@ -2267,7 +2242,6 @@
     }
 
     loginError.textContent = '';
-    passwordResetStatus.textContent = '';
     passwordSetupError.textContent = '';
     passwordSetupStatus.textContent = '';
     setPasswordSetupState(false);
@@ -2308,7 +2282,6 @@
   }
 
   loginBtn.addEventListener('click', handleLogin);
-  forgotPasswordBtn.addEventListener('click', handlePasswordReset);
   updatePasswordBtn.addEventListener('click', handlePasswordUpdate);
   backToLoginBtn.addEventListener('click', handleBackToLogin);
   logoutBtn.addEventListener('click', handleLogout);
