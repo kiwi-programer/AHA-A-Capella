@@ -409,6 +409,18 @@
 
   .events-list { display: flex; flex-direction: column; gap: 1rem; }
 
+  .event-editor-controls {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .event-editor-controls .btn {
+    width: auto;
+    min-width: 140px;
+  }
+
   .event-card {
     background: var(--white);
     border: 2px solid var(--marble-dark);
@@ -462,6 +474,18 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     margin-top: 0.4rem;
+  }
+
+  .spam-trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .hidden-json-store {
+    display: none !important;
   }
 
   .divider {
@@ -913,6 +937,7 @@
     .admin-panel {
       width: 100vw;
       max-width: 100vw;
+    .event-editor-controls .btn { width: 100%; }
       border-left: none;
     }
     .admin-tab {
@@ -1027,40 +1052,12 @@
   <div class="page-content">
 
     <div class="section-label" data-edit-key="upcomingEventsLabel">Upcoming Events</div>
-    <div class="events-list">
-      <div class="event-card">
-        <div class="event-date"><div class="month">JUN</div><div class="day">7</div></div>
-        <div class="event-info">
-          <h4 data-edit-key="event1Title">Weekly Rehearsal 🎤</h4>
-          <p data-edit-key="event1Body">Regular group rehearsal — all members welcome. Bring your sheet music and warm up those vocals!</p>
-          <span class="event-tag">Rehearsal</span>
-        </div>
-      </div>
-      <div class="event-card">
-        <div class="event-date"><div class="month">JUN</div><div class="day">14</div></div>
-        <div class="event-info">
-          <h4 data-edit-key="event2Title">Summer Kickoff Social 🌟</h4>
-          <p data-edit-key="event2Body">Casual hangout to celebrate the end of the school year. Snacks, games, and of course, singing!</p>
-          <span class="event-tag">Hangout</span>
-        </div>
-      </div>
-      <div class="event-card">
-        <div class="event-date"><div class="month">JUL</div><div class="day">4</div></div>
-        <div class="event-info">
-          <h4 data-edit-key="event3Title">Independence Day Performance 🎆</h4>
-          <p data-edit-key="event3Body">AHA! will be performing at the community block party. Come cheer us on or join us on stage!</p>
-          <span class="event-tag">Performance</span>
-        </div>
-      </div>
-      <div class="event-card">
-        <div class="event-date"><div class="month">JUL</div><div class="day">19</div></div>
-        <div class="event-info">
-          <h4 data-edit-key="event4Title">New Member Meet & Greet 🐧</h4>
-          <p data-edit-key="event4Body">Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!</p>
-          <span class="event-tag">Open to All</span>
-        </div>
-      </div>
+    <div id="eventEditorControls" class="event-editor-controls hidden">
+      <button class="btn btn-outline" id="addEventBtn" type="button">Add Event</button>
+      <button class="btn btn-outline" id="removeEventBtn" type="button">Remove Last Event</button>
     </div>
+    <div class="events-list" id="eventsList"></div>
+    <div class="hidden-json-store" data-edit-key="eventsData" id="eventsDataStore"></div>
 
     <hr class="divider">
 
@@ -1069,6 +1066,10 @@
       <div class="form-group">
         <label>Your Name</label>
         <input type="text" id="meetup-name" placeholder="e.g. Alex">
+      </div>
+      <div class="spam-trap" aria-hidden="true">
+        <label>Website</label>
+        <input type="text" id="meetup-website" autocomplete="off" tabindex="-1">
       </div>
       <div class="form-group">
         <label>Meetup Idea</label>
@@ -1102,6 +1103,10 @@
       <div class="form-group">
         <label>Song Title</label>
         <input type="text" id="song-title" placeholder="e.g. Can't Help Falling in Love">
+      </div>
+      <div class="spam-trap" aria-hidden="true">
+        <label>Website</label>
+        <input type="text" id="song-website" autocomplete="off" tabindex="-1">
       </div>
       <div class="form-group">
         <label>Artist / Originally By</label>
@@ -1143,6 +1148,14 @@
           <div class="form-group">
             <label>Your Name</label>
             <input type="text" id="contact-name" placeholder="e.g. Jamie">
+          </div>
+          <div class="form-group">
+            <label>Your Email</label>
+            <input type="email" id="contact-email" placeholder="e.g. jamie@example.com" autocomplete="email">
+          </div>
+          <div class="spam-trap" aria-hidden="true">
+            <label>Website</label>
+            <input type="text" id="contact-website" autocomplete="off" tabindex="-1">
           </div>
           <div class="form-group">
             <label>Subject</label>
@@ -1218,7 +1231,9 @@
 const BACKEND_API_BASE = 'https://aha-a-capella-backend.vercel.app';
 const EDITOR_MODE = new URLSearchParams(location.search).get('editor') === '1';
 const EDITOR_CHANNEL = 'aha-site-editor';
+const FORM_STARTED_AT = Date.now();
 let editorContentObserver = null;
+let currentEvents = [];
 
 function postEditorMessage(type, payload = {}) {
   if (!EDITOR_MODE || !window.parent || window.parent === window) {
@@ -1237,10 +1252,172 @@ function syncEditorContent() {
     return;
   }
 
+  const eventsStore = document.getElementById('eventsDataStore');
+  if (eventsStore) {
+    currentEvents = collectEventsFromDOM();
+    eventsStore.textContent = JSON.stringify(currentEvents);
+  }
+
   postEditorMessage('content', {
     content: window.AHASiteContent.collectContent(document),
     page: document.querySelector('.page.active')?.id?.replace('page-', '') || 'home'
   });
+}
+
+function getEventsTemplate() {
+  return [
+    { month: 'JUN', day: '7', title: 'Weekly Rehearsal 🎤', body: 'Regular group rehearsal — all members welcome. Bring your sheet music and warm up those vocals!', tag: 'Rehearsal' },
+    { month: 'JUN', day: '14', title: 'Summer Kickoff Social 🌟', body: 'Casual hangout to celebrate the end of the school year. Snacks, games, and of course, singing!', tag: 'Hangout' },
+    { month: 'JUL', day: '4', title: 'Independence Day Performance 🎆', body: 'AHA! will be performing at the community block party. Come cheer us on or join us on stage!', tag: 'Performance' },
+    { month: 'JUL', day: '19', title: 'New Member Meet & Greet 🐧', body: 'Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!', tag: 'Open to All' }
+  ];
+}
+
+function normalizeEvents(events) {
+  return events
+    .filter((event) => event && typeof event === 'object')
+    .map((event, index) => ({
+      month: String(event.month || 'JAN').toUpperCase().slice(0, 3),
+      day: String(event.day || String(index + 1)),
+      title: String(event.title || `Event ${index + 1}`),
+      body: String(event.body || 'Add event details here.'),
+      tag: String(event.tag || 'Event')
+    }));
+}
+
+function parseEventsData() {
+  const store = document.getElementById('eventsDataStore');
+  const source = store?.textContent?.trim();
+  if (!source) {
+    return getEventsTemplate();
+  }
+
+  try {
+    return normalizeEvents(JSON.parse(source));
+  } catch (error) {
+    return getEventsTemplate();
+  }
+}
+
+function collectEventsFromDOM() {
+  const eventsList = document.getElementById('eventsList');
+  if (!eventsList) {
+    return currentEvents.length ? currentEvents : getEventsTemplate();
+  }
+
+  const cards = Array.from(eventsList.querySelectorAll('.event-card'));
+  return cards.map((card, index) => {
+    const month = card.querySelector('.month')?.textContent?.trim() || 'JAN';
+    const day = card.querySelector('.day')?.textContent?.trim() || String(index + 1);
+    const title = card.querySelector('.event-info h4')?.textContent?.trim() || `Event ${index + 1}`;
+    const body = card.querySelector('.event-info p')?.textContent?.trim() || 'Add event details here.';
+    const tag = card.querySelector('.event-tag')?.textContent?.trim() || 'Event';
+    return { month, day, title, body, tag };
+  });
+}
+
+function renderEvents() {
+  const eventsList = document.getElementById('eventsList');
+  if (!eventsList) {
+    return;
+  }
+
+  currentEvents = parseEventsData();
+  eventsList.innerHTML = '';
+
+  currentEvents.forEach((event, index) => {
+    const card = document.createElement('div');
+    card.className = 'event-card';
+
+    const date = document.createElement('div');
+    date.className = 'event-date';
+
+    const month = document.createElement('div');
+    month.className = 'month';
+    month.dataset.editKey = `event${index + 1}Month`;
+    month.textContent = event.month;
+
+    const day = document.createElement('div');
+    day.className = 'day';
+    day.dataset.editKey = `event${index + 1}Day`;
+    day.textContent = event.day;
+
+    date.append(month, day);
+
+    const info = document.createElement('div');
+    info.className = 'event-info';
+
+    const title = document.createElement('h4');
+    title.dataset.editKey = `event${index + 1}Title`;
+    title.textContent = event.title;
+
+    const body = document.createElement('p');
+    body.dataset.editKey = `event${index + 1}Body`;
+    body.textContent = event.body;
+
+    const tag = document.createElement('span');
+    tag.className = 'event-tag';
+    tag.dataset.editKey = `event${index + 1}Tag`;
+    tag.textContent = event.tag;
+
+    info.append(title, body, tag);
+    card.append(date, info);
+
+    if (EDITOR_MODE) {
+      window.AHASiteContent.setEditable(true, card);
+      card.querySelectorAll('[contenteditable="true"]').forEach((element) => {
+        element.addEventListener('input', syncEditorContent);
+        element.addEventListener('blur', syncEditorContent);
+      });
+    }
+
+    eventsList.appendChild(card);
+  });
+
+  const controls = document.getElementById('eventEditorControls');
+  if (controls) {
+    controls.classList.toggle('hidden', !EDITOR_MODE);
+  }
+}
+
+function syncEventsDataAndRender() {
+  const store = document.getElementById('eventsDataStore');
+  if (store) {
+    store.textContent = JSON.stringify(currentEvents);
+  }
+  renderEvents();
+  syncEditorContent();
+}
+
+function addEventCard() {
+  currentEvents = normalizeEvents([...parseEventsData(), {
+    month: 'AUG',
+    day: String(parseEventsData().length + 1),
+    title: 'New Event',
+    body: 'Add event details here.',
+    tag: 'Event'
+  }]);
+  syncEventsDataAndRender();
+}
+
+function removeLastEventCard() {
+  const events = parseEventsData();
+  if (events.length <= 1) {
+    showToast('Keep at least one event on the page.');
+    return;
+  }
+
+  currentEvents = events.slice(0, -1);
+  syncEventsDataAndRender();
+}
+
+function getSubmissionSecurityFields(formName) {
+  const honeypot = document.getElementById(`${formName}-website`);
+  return {
+    formStartedAt: FORM_STARTED_AT,
+    honeypot: honeypot?.value?.trim() || '',
+    clientPage: document.querySelector('.page.active')?.id?.replace('page-', '') || 'home'
+  };
 }
 
 function enableEditorMode() {
@@ -1282,6 +1459,7 @@ function enableEditorMode() {
 
     if (data.type === 'set-content') {
       window.AHASiteContent.applyContent(data.content || {}, document);
+      renderEvents();
       syncEditorContent();
       return;
     }
@@ -1309,6 +1487,8 @@ async function hydratePublicContent() {
   } catch (error) {
     window.AHASiteContent.applyContent(window.AHASiteContent.defaults, document);
   }
+
+  renderEvents();
 }
 
 // ---- NAV ----
@@ -1374,13 +1554,15 @@ async function submitSong() {
   const artist = document.getElementById('song-artist').value.trim();
   const diff = parseInt(document.getElementById('song-diff').value);
   const reason = document.getElementById('song-reason').value.trim();
+  const security = getSubmissionSecurityFields('song');
   if (!title || !artist) { showToast("Please fill in the song title and artist ♩"); return; }
 
   try {
     await submitToBackend('song', {
       title,
       message: reason || 'No additional reason provided.',
-      metadata: { artist, difficulty: diff }
+      metadata: { artist, difficulty: diff },
+      ...security
     });
     document.getElementById('song-title').value = '';
     document.getElementById('song-artist').value = '';
@@ -1398,6 +1580,7 @@ async function submitMeetup() {
   const idea = document.getElementById('meetup-idea').value.trim();
   const date = document.getElementById('meetup-date').value.trim();
   const notes = document.getElementById('meetup-notes').value.trim();
+  const security = getSubmissionSecurityFields('meetup');
   if (!name || !idea) { showToast("Please add your name and meetup idea ♩"); return; }
 
   try {
@@ -1405,7 +1588,8 @@ async function submitMeetup() {
       name,
       title: idea,
       message: notes || 'No additional notes provided.',
-      metadata: { proposedDate: date }
+      metadata: { proposedDate: date },
+      ...security
     });
     document.getElementById('meetup-name').value = '';
     document.getElementById('meetup-idea').value = '';
@@ -1420,18 +1604,22 @@ async function submitMeetup() {
 // ---- CONTACT ----
 async function submitContact() {
   const name = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
   const subject = document.getElementById('contact-subject').value;
   const msg = document.getElementById('contact-msg').value.trim();
-  if (!name || !msg) { showToast("Please fill in your name and message ♩"); return; }
+  const security = getSubmissionSecurityFields('contact');
+  if (!name || !email || !msg) { showToast("Please fill in your name, email, and message ♩"); return; }
 
   try {
     await submitToBackend('contact', {
       name,
       title: subject,
       message: msg,
-      metadata: {}
+      metadata: { contactEmail: email },
+      ...security
     });
     document.getElementById('contact-name').value = '';
+    document.getElementById('contact-email').value = '';
     document.getElementById('contact-msg').value = '';
     document.getElementById('contact-subject').selectedIndex = 0;
     showToast("Message sent! ♫ We'll get back to you soon!");
@@ -1442,13 +1630,21 @@ async function submitContact() {
 
 function clearContact() {
   document.getElementById('contact-name').value = '';
+  document.getElementById('contact-email').value = '';
   document.getElementById('contact-msg').value = '';
 }
 
 hydratePublicContent();
-
 if (EDITOR_MODE) {
   enableEditorMode();
+  const addEventBtn = document.getElementById('addEventBtn');
+  const removeEventBtn = document.getElementById('removeEventBtn');
+  if (addEventBtn) {
+    addEventBtn.addEventListener('click', addEventCard);
+  }
+  if (removeEventBtn) {
+    removeEventBtn.addEventListener('click', removeLastEventCard);
+  }
 }
 
 </script>

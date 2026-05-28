@@ -95,7 +95,26 @@ module.exports = async (request, response) => {
       const name = normalizeText(body.name) || null;
       const title = normalizeText(body.title) || null;
       const message = normalizeText(body.message);
+      const honeypot = normalizeText(body.honeypot, 120);
+      const formStartedAt = Number(body.formStartedAt);
       const metadata = body.metadata && typeof body.metadata === 'object' ? sanitizeContent(body.metadata) : {};
+      const contactEmail = normalizeText(metadata.contactEmail || '', 320);
+
+      if (honeypot) {
+        return response.status(400).json({ error: 'Invalid submission payload' });
+      }
+
+      if (!Number.isFinite(formStartedAt)) {
+        return response.status(400).json({ error: 'Invalid submission payload' });
+      }
+
+      if (Date.now() - formStartedAt < 2500) {
+        return response.status(400).json({ error: 'Submission too fast' });
+      }
+
+      if (submissionType === 'contact' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+        return response.status(400).json({ error: 'Invalid submission payload' });
+      }
 
       const requestMetadata = sanitizeContent({
         ip: normalizeText(getClientIp(request), 80) || 'unknown',

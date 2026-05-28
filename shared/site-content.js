@@ -29,6 +29,12 @@
     event3Body: 'AHA! will be performing at the community block party. Come cheer us on or join us on stage!',
     event4Title: 'New Member Meet & Greet 🐧',
     event4Body: 'Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!',
+    eventsData: JSON.stringify([
+      { month: 'JUN', day: '7', title: 'Weekly Rehearsal 🎤', body: 'Regular group rehearsal — all members welcome. Bring your sheet music and warm up those vocals!', tag: 'Rehearsal' },
+      { month: 'JUN', day: '14', title: 'Summer Kickoff Social 🌟', body: 'Casual hangout to celebrate the end of the school year. Snacks, games, and of course, singing!', tag: 'Hangout' },
+      { month: 'JUL', day: '4', title: 'Independence Day Performance 🎆', body: 'AHA! will be performing at the community block party. Come cheer us on or join us on stage!', tag: 'Performance' },
+      { month: 'JUL', day: '19', title: 'New Member Meet & Greet 🐧', body: 'Interested in joining AHA!? Come meet the team, learn our story, and try singing with us for the first time!', tag: 'Open to All' }
+    ]),
     meetupLabel: 'Suggest a Meetup',
     songsTitle: '🎵 Song Suggestions',
     songsSubtitle: 'Submit new ideas',
