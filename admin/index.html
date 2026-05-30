@@ -1375,8 +1375,13 @@
       return;
     }
 
+    const targetPage = previewRoot.querySelector(`#page-${pageName}`);
+    if (!targetPage) {
+      return;
+    }
+
     previewRoot.querySelectorAll('.page').forEach((page) => {
-      page.classList.toggle('active', page.id === `page-${pageName}`);
+      page.classList.toggle('active', page === targetPage);
     });
 
     previewRoot.querySelectorAll('.nav-links a').forEach((link) => {
@@ -1672,13 +1677,17 @@
   }
 
   function renderCurrentEditor() {
-    const useInlinePreview = shouldUseInlinePreview();
-    if (useInlinePreview) {
+    if (activeView === 'events') {
+      renderEventsEditor();
+      return;
+    }
+
+    if (activeView === 'content') {
       renderContentEditor();
       return;
     }
 
-    renderIframeEditor(previewPageName);
+    renderContentEditor();
   }
 
   function setPasswordSetupState(enabled, flowType = '') {
