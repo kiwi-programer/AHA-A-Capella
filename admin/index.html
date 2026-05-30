@@ -381,6 +381,10 @@
     box-shadow: 0 10px 20px rgba(0,0,0,0.12);
   }
 
+  .editor-frame-shell.loading .editor-preview-frame {
+    visibility: hidden;
+  }
+
   .editor-preview-frame {
     width: 100%;
     min-height: calc(100vh - 240px);
@@ -1179,7 +1183,11 @@
   let canManageUsers = false;
   let currentUserRole = 'editor';
   let editorFrame = null;
+  let editorShell = null;
+  let editorOverlay = null;
   let editorPage = 'home';
+  let previewRenderMode = '';
+  let previewPageName = 'home';
   let passwordSetupMode = false;
 
   const groups = [
@@ -1322,26 +1330,40 @@
   }
 
   function renderIframeEditor(pageName) {
-    editorRoot.innerHTML = '';
+    const desiredUrl = buildEditorUrl(pageName);
 
-    const shell = document.createElement('div');
-    shell.className = 'page-canvas-shell editor-frame-shell';
+    if (!editorShell || !editorFrame || !editorRoot.contains(editorShell)) {
+      editorRoot.innerHTML = '';
 
-    const overlay = document.createElement('div');
-    overlay.className = 'editor-frame-overlay';
-    overlay.textContent = 'Live frontend preview';
+      editorShell = document.createElement('div');
+      editorShell.className = 'page-canvas-shell editor-frame-shell loading';
 
-    const frame = document.createElement('iframe');
-    frame.className = 'editor-preview-frame';
-    frame.title = 'AHA frontend editor preview';
-    frame.src = buildEditorUrl(pageName);
-    frame.addEventListener('load', () => {
-      editorFrame = frame;
-    });
+      editorOverlay = document.createElement('div');
+      editorOverlay.className = 'editor-frame-overlay';
+      editorOverlay.textContent = 'Live frontend preview';
 
-    shell.append(overlay, frame);
-    editorRoot.appendChild(shell);
-    editorFrame = frame;
+      editorFrame = document.createElement('iframe');
+      editorFrame.className = 'editor-preview-frame';
+      editorFrame.title = 'AHA frontend editor preview';
+      editorFrame.addEventListener('load', () => {
+        editorShell.classList.remove('loading');
+      });
+
+      editorShell.append(editorOverlay, editorFrame);
+      editorRoot.appendChild(editorShell);
+    }
+
+    previewPageName = pageName;
+    editorShell.classList.add('loading');
+    if (editorFrame.src !== desiredUrl) {
+      editorFrame.src = desiredUrl;
+    } else {
+      editorShell.classList.remove('loading');
+    }
+  }
+
+  function shouldUseInlinePreview() {
+    return window.matchMedia('(max-width: 900px)').matches || window.matchMedia('(pointer: coarse)').matches;
   }
 
   function renderContentEditor() {
@@ -1615,7 +1637,20 @@
   }
 
   function renderCurrentEditor() {
-    renderIframeEditor('home');
+    const useInlinePreview = shouldUseInlinePreview();
+    const nextMode = useInlinePreview ? 'inline' : 'iframe';
+
+    if (previewRenderMode === nextMode && editorRoot.childElementCount) {
+      return;
+    }
+
+    previewRenderMode = nextMode;
+    if (useInlinePreview) {
+      renderContentEditor();
+      return;
+    }
+
+    renderIframeEditor(previewPageName);
   }
 
   function setPasswordSetupState(enabled, flowType = '') {
@@ -2313,6 +2348,18 @@
     if (event.key === 'Escape' && !submissionModalBackdrop.classList.contains('hidden')) {
       closeSubmissionDetail();
     }
+  });
+  let previewResizeTimer = null;
+  window.addEventListener('resize', () => {
+    if (activeView !== 'content' || passwordSetupMode) {
+      return;
+    }
+
+    window.clearTimeout(previewResizeTimer);
+    previewResizeTimer = window.setTimeout(() => {
+      previewRenderMode = '';
+      renderCurrentEditor();
+    }, 150);
   });
   window.addEventListener('message', handleEditorMessage);
 
