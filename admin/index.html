@@ -1188,6 +1188,7 @@
   let editorPage = 'home';
   let previewRenderMode = '';
   let previewPageName = 'home';
+  let previewReady = false;
   let passwordSetupMode = false;
 
   const groups = [
@@ -1299,6 +1300,16 @@
     }, '*');
   }
 
+  function syncEditorFrameState() {
+    if (!editorFrame?.contentWindow) {
+      return;
+    }
+
+    sendEditorContent();
+    sendEditorMode();
+    showPage(previewPageName || editorPage || 'home');
+  }
+
   function handleEditorMessage(event) {
     if (event.source !== editorFrame?.contentWindow) {
       return;
@@ -1319,6 +1330,7 @@
     }
 
     if (data.type === 'ready') {
+      previewReady = true;
       sendEditorContent();
       sendEditorMode();
       showPage(editorPage);
@@ -1350,6 +1362,8 @@
       editorFrame.title = 'AHA frontend editor preview';
       editorFrame.addEventListener('load', () => {
         editorShell.classList.remove('loading');
+        previewReady = false;
+        syncEditorFrameState();
       });
 
       editorShell.append(editorOverlay, editorFrame);
