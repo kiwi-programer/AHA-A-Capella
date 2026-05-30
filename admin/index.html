@@ -1262,7 +1262,9 @@
 
   function showPage(pageName) {
     editorPage = pageName;
-    if (!editorFrame?.contentWindow) {
+    previewPageName = pageName;
+    if (shouldUseInlinePreview() || !editorFrame?.contentWindow) {
+      setInlinePreviewPage(pageName);
       return;
     }
 
@@ -1313,6 +1315,7 @@
 
     if (data.type === 'page' && data.page) {
       editorPage = data.page;
+      previewPageName = data.page;
     }
 
     if (data.type === 'ready') {
@@ -1364,6 +1367,24 @@
 
   function shouldUseInlinePreview() {
     return window.matchMedia('(max-width: 900px)').matches || window.matchMedia('(pointer: coarse)').matches;
+  }
+
+  function setInlinePreviewPage(pageName, linkEl = null) {
+    const previewRoot = editorRoot.querySelector('.editor-site-frame');
+    if (!previewRoot) {
+      return;
+    }
+
+    previewRoot.querySelectorAll('.page').forEach((page) => {
+      page.classList.toggle('active', page.id === `page-${pageName}`);
+    });
+
+    previewRoot.querySelectorAll('.nav-links a').forEach((link) => {
+      link.classList.toggle('active', link === linkEl || link.dataset.page === pageName);
+    });
+
+    previewPageName = pageName;
+    editorPage = pageName;
   }
 
   function renderContentEditor() {
@@ -1557,6 +1578,13 @@
 `;
 
     wireEditableNodes(preview);
+    preview.querySelectorAll('.nav-links a').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showPage(link.dataset.page || 'home');
+      });
+    });
+    setInlinePreviewPage(previewPageName || editorPage || 'home');
     shell.appendChild(preview);
     editorRoot.appendChild(shell);
   }
@@ -1632,6 +1660,13 @@
 `;
 
     wireEditableNodes(preview);
+    preview.querySelectorAll('.nav-links a').forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showPage(link.dataset.page || 'events');
+      });
+    });
+    setInlinePreviewPage('events');
     shell.appendChild(preview);
     editorRoot.appendChild(shell);
   }
