@@ -1638,13 +1638,6 @@
 
   function renderCurrentEditor() {
     const useInlinePreview = shouldUseInlinePreview();
-    const nextMode = useInlinePreview ? 'inline' : 'iframe';
-
-    if (previewRenderMode === nextMode && editorRoot.childElementCount) {
-      return;
-    }
-
-    previewRenderMode = nextMode;
     if (useInlinePreview) {
       renderContentEditor();
       return;
