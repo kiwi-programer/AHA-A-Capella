@@ -1263,8 +1263,8 @@
   function showPage(pageName) {
     editorPage = pageName;
     previewPageName = pageName;
-    if (shouldUseInlinePreview() || !editorFrame?.contentWindow) {
-      setInlinePreviewPage(pageName);
+    if (!editorFrame?.contentWindow) {
+      renderIframeEditor(pageName);
       return;
     }
 
@@ -1677,17 +1677,8 @@
   }
 
   function renderCurrentEditor() {
-    if (activeView === 'events') {
-      renderEventsEditor();
-      return;
-    }
-
-    if (activeView === 'content') {
-      renderContentEditor();
-      return;
-    }
-
-    renderContentEditor();
+    const pageName = activeView === 'events' ? 'events' : (previewPageName || editorPage || 'home');
+    renderIframeEditor(pageName);
   }
 
   function setPasswordSetupState(enabled, flowType = '') {
