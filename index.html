@@ -1255,7 +1255,10 @@ function syncEditorContent() {
   const eventsStore = document.getElementById('eventsDataStore');
   if (eventsStore) {
     currentEvents = collectEventsFromDOM();
-    eventsStore.textContent = JSON.stringify(currentEvents);
+    const nextEventsJson = JSON.stringify(currentEvents);
+    if (eventsStore.textContent !== nextEventsJson) {
+      eventsStore.textContent = nextEventsJson;
+    }
   }
 
   postEditorMessage('content', {
@@ -1443,6 +1446,9 @@ function enableEditorMode() {
 
   editorContentObserver = new MutationObserver(syncEditorContent);
   window.AHASiteContent.getElements(document).forEach((element) => {
+    if (element.classList.contains('hidden-json-store')) {
+      return;
+    }
     editorContentObserver.observe(element, {
       subtree: true,
       childList: true,
