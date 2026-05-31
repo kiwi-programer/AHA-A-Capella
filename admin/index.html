@@ -198,6 +198,8 @@
     letter-spacing: 1px;
     text-align: center;
     min-height: 1.4em;
+    min-width: 18ch;
+    white-space: nowrap;
     margin-bottom: 1.9rem;
     transition: opacity 0.28s ease;
   }
@@ -1458,12 +1460,8 @@
     requestAnimationFrame(() => bootLoader.classList.add('ready'));
 
     bootMessageTimer = window.setInterval(() => {
-      bootMsg.classList.add('hidden');
-      window.setTimeout(() => {
-        bootMsgIndex = (bootMsgIndex + 1) % BOOT_MESSAGES.length;
-        bootMsg.textContent = BOOT_MESSAGES[bootMsgIndex];
-        bootMsg.classList.remove('hidden');
-      }, 240);
+      bootMsgIndex = (bootMsgIndex + 1) % BOOT_MESSAGES.length;
+      bootMsg.textContent = BOOT_MESSAGES[bootMsgIndex];
     }, BOOT_MESSAGE_INTERVAL);
 
     const tickBootLoader = (timestamp) => {
@@ -1486,11 +1484,9 @@
 
       bootPct.classList.add('done');
       if (!bootFinished) {
-        bootMsg.classList.add('hidden');
         window.setTimeout(() => {
           bootMsg.textContent = "Let's go! ♫";
           bootMsg.style.color = 'var(--gold-light)';
-          bootMsg.classList.remove('hidden');
         }, 220);
       }
 
