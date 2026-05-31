@@ -157,6 +157,7 @@
     border-radius: 50%;
     background: radial-gradient(circle, rgba(200,146,42,0.18) 0%, transparent 70%);
     animation: bootHaloPulse 2.4s ease-in-out infinite;
+    z-index: 1;
   }
 
   @keyframes bootHaloPulse {
@@ -179,17 +180,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
   }
 
   .boot-poco-wrap img {
-    width: 100%;
-    height: 100%;
+    width: 150%;
+    height: 150%;
+    display: block;
     object-fit: contain;
-    padding: 10px;
-  }
-
-  .boot-poco-wrap img.loaded {
-    animation: bootPocoBob 2.3s ease-in-out infinite;
+    padding: 6px;
   }
 
   .boot-msg {
@@ -1417,6 +1416,7 @@
   let bootMessageTimer = null;
   let bootFrameId = null;
   let bootFinished = false;
+  let bootCanHide = false;
 
   const bootLoader = document.getElementById('bootLoader');
   const bootWrap = document.getElementById('bootWrap');
@@ -1493,6 +1493,11 @@
           bootMsg.classList.remove('hidden');
         }, 220);
       }
+
+      bootFinished = true;
+      if (bootCanHide) {
+        hideBootLoader();
+      }
     };
 
     bootFrameId = window.requestAnimationFrame(tickBootLoader);
@@ -1511,6 +1516,10 @@
   }
 
   function hideBootLoader() {
+    if (!bootCanHide) {
+      return;
+    }
+
     stopBootLoaderAnimation();
     if (!bootLoader) {
       return;
@@ -2770,7 +2779,10 @@
         setAuthState(false);
       }
     } finally {
-      hideBootLoader();
+      bootCanHide = true;
+      if (bootFinished) {
+        hideBootLoader();
+      }
     }
   }
 
