@@ -143,6 +143,10 @@
     filter: drop-shadow(0 0 5px rgba(200,146,42,0.35));
   }
 
+  .boot-ring-fill.animate {
+    transition: stroke-dashoffset 0.04s linear;
+  }
+
   .boot-halo {
     position: absolute;
     top: 50%;
@@ -184,6 +188,10 @@
     padding: 10px;
   }
 
+  .boot-poco-wrap img.loaded {
+    animation: bootPocoBob 2.3s ease-in-out infinite;
+  }
+
   .boot-msg {
     font-size: clamp(0.75rem, 2.2vw, 0.88rem);
     font-weight: 500;
@@ -200,6 +208,10 @@
     letter-spacing: 3px;
     text-transform: uppercase;
     color: rgba(250,248,245,0.22);
+  }
+
+  .boot-pct.done {
+    color: var(--gold-light);
   }
 
   .boot-foot {
@@ -1130,7 +1142,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div class="boot-loader ready" id="bootLoader" aria-live="polite" aria-busy="true">
+  <div class="boot-loader" id="bootLoader" aria-live="polite" aria-busy="true">
     <div class="boot-wrap" id="bootWrap">
       <div class="boot-wordmark">
         AHA!
@@ -1139,11 +1151,11 @@
       <div class="boot-stage">
         <svg class="boot-ring-svg" viewBox="0 0 230 230" aria-hidden="true">
           <circle class="boot-ring-track" cx="115" cy="115" r="108"></circle>
-          <circle class="boot-ring-fill" cx="115" cy="115" r="108" id="bootRingFill" stroke-dasharray="678.6" stroke-dashoffset="678.6"></circle>
+          <circle class="boot-ring-fill animate" cx="115" cy="115" r="108" id="bootRingFill" stroke-dasharray="678.6" stroke-dashoffset="678.6"></circle>
         </svg>
         <div class="boot-halo"></div>
         <div class="boot-poco-wrap">
-          <img src="../assets/images/poco.png" alt="Poco the Piano Penguin">
+          <img id="bootPocoImage" src="../assets/images/poco.png" data-fallback-src="https://aha-a-capella.vercel.app/assets/images/poco.png" alt="Poco the Piano Penguin">
         </div>
       </div>
       <div class="boot-msg" id="bootMsg">Warming up the vocals...</div>
@@ -1400,6 +1412,113 @@
   let previewPageName = 'home';
   let previewReady = false;
   let passwordSetupMode = false;
+  let bootStartTime = null;
+  let bootMsgIndex = 0;
+  let bootMessageTimer = null;
+  let bootFrameId = null;
+  let bootFinished = false;
+
+  const bootLoader = document.getElementById('bootLoader');
+  const bootWrap = document.getElementById('bootWrap');
+  const bootRingFill = document.getElementById('bootRingFill');
+  const bootMsg = document.getElementById('bootMsg');
+  const bootPct = document.getElementById('bootPct');
+  const bootPocoImage = document.getElementById('bootPocoImage');
+
+  const BOOT_MESSAGES = [
+    'Warming up the vocals...',
+    'Tuning the harmonies...',
+    'Poco is getting ready...',
+    'Finding the rhythm...',
+    'Almost there...',
+    'One voice, many hearts ♪'
+  ];
+  const BOOT_DURATION = 3600;
+  const BOOT_MESSAGE_INTERVAL = Math.floor(BOOT_DURATION / BOOT_MESSAGES.length);
+
+  function startBootLoaderAnimation() {
+    if (!bootLoader || !bootWrap || !bootRingFill || !bootMsg || !bootPct) {
+      return;
+    }
+
+    if (bootPocoImage) {
+      const fallbackSrc = bootPocoImage.dataset.fallbackSrc;
+      bootPocoImage.addEventListener('load', () => {
+        bootPocoImage.classList.add('loaded');
+      }, { once: true });
+      bootPocoImage.addEventListener('error', () => {
+        if (fallbackSrc && bootPocoImage.src !== fallbackSrc) {
+          bootPocoImage.src = fallbackSrc;
+          return;
+        }
+        bootPocoImage.outerHTML = '<span style="font-size:3.8rem;line-height:1;">🐧</span>';
+      }, { once: false });
+    }
+
+    requestAnimationFrame(() => bootLoader.classList.add('ready'));
+
+    bootMessageTimer = window.setInterval(() => {
+      bootMsg.classList.add('hidden');
+      window.setTimeout(() => {
+        bootMsgIndex = (bootMsgIndex + 1) % BOOT_MESSAGES.length;
+        bootMsg.textContent = BOOT_MESSAGES[bootMsgIndex];
+        bootMsg.classList.remove('hidden');
+      }, 240);
+    }, BOOT_MESSAGE_INTERVAL);
+
+    const tickBootLoader = (timestamp) => {
+      if (!bootStartTime) {
+        bootStartTime = timestamp;
+      }
+
+      const progress = Math.min((timestamp - bootStartTime) / BOOT_DURATION, 1);
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      bootRingFill.setAttribute('stroke-dashoffset', (678.6 * (1 - eased)).toFixed(2));
+      bootPct.textContent = `${Math.round(eased * 100)}%`;
+
+      if (progress < 1 && !bootFinished) {
+        bootFrameId = window.requestAnimationFrame(tickBootLoader);
+        return;
+      }
+
+      bootPct.classList.add('done');
+      if (!bootFinished) {
+        bootMsg.classList.add('hidden');
+        window.setTimeout(() => {
+          bootMsg.textContent = "Let's go! ♫";
+          bootMsg.style.color = 'var(--gold-light)';
+          bootMsg.classList.remove('hidden');
+        }, 220);
+      }
+    };
+
+    bootFrameId = window.requestAnimationFrame(tickBootLoader);
+  }
+
+  function stopBootLoaderAnimation() {
+    bootFinished = true;
+    if (bootMessageTimer) {
+      window.clearInterval(bootMessageTimer);
+      bootMessageTimer = null;
+    }
+    if (bootFrameId) {
+      window.cancelAnimationFrame(bootFrameId);
+      bootFrameId = null;
+    }
+  }
+
+  function hideBootLoader() {
+    stopBootLoaderAnimation();
+    if (!bootLoader) {
+      return;
+    }
+
+    bootLoader.classList.add('hidden');
+    window.setTimeout(() => bootLoader.remove(), 450);
+  }
 
   const groups = [
     {
@@ -2651,14 +2770,11 @@
         setAuthState(false);
       }
     } finally {
-      const bootLoader = document.getElementById('bootLoader');
-      if (bootLoader) {
-        bootLoader.classList.remove('ready');
-        window.setTimeout(() => bootLoader.remove(), 450);
-      }
+      hideBootLoader();
     }
   }
 
+  startBootLoaderAnimation();
   initAuth();
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
