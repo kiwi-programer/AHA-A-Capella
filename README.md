@@ -70,9 +70,9 @@ Deploy `backend/` as a separate Vercel project.
 
 ### Startup behavior
 
-- The public site stays hidden behind a lightweight loading state until Supabase content finishes hydrating.
-- The admin editor iframe inherits the same behavior, so the default markup does not flash before live content arrives.
-- If the site appears stuck on loading in production, verify the backend content endpoint is reachable and returning a valid payload.
+- The public site renders immediately and hydrates Supabase-backed content in place, so static sections are visible without a blocking loading screen.
+- The admin portal shows a branded boot loader while auth and initial content finish loading, then fades into the portal UI.
+- If the admin appears stuck on the boot screen in production, verify the backend content endpoint and auth flow are both reachable.
 
 ## Favicon Placement
 

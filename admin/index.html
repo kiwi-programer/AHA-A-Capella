@@ -29,6 +29,195 @@
     overflow-x: hidden;
   }
 
+  .boot-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 6000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--charcoal);
+    color: var(--cream);
+    transition: opacity 0.45s ease, visibility 0.45s ease;
+  }
+
+  .boot-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .boot-loader::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 55% 55% at 50% 48%, rgba(200,146,42,0.10) 0%, transparent 70%);
+    pointer-events: none;
+    animation: bootGlow 4s ease-in-out infinite;
+  }
+
+  .boot-loader::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  @keyframes bootGlow {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+
+  .boot-wrap {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+
+  .boot-loader.ready .boot-wrap {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .boot-wordmark {
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: var(--gold-light);
+    text-transform: uppercase;
+    margin-bottom: 2.8rem;
+    text-align: center;
+  }
+
+  .boot-wordmark small {
+    display: block;
+    font-size: 0.6em;
+    letter-spacing: 3px;
+    color: rgba(250,248,245,0.35);
+    margin-top: 5px;
+    font-weight: 400;
+  }
+
+  .boot-stage {
+    position: relative;
+    width: 280px;
+    height: 280px;
+    overflow: visible;
+    margin-bottom: 2.2rem;
+  }
+
+  .boot-ring-svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 230px;
+    height: 230px;
+    overflow: visible;
+  }
+
+  .boot-ring-track {
+    fill: none;
+    stroke: rgba(255,255,255,0.06);
+    stroke-width: 3.5;
+  }
+
+  .boot-ring-fill {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    filter: drop-shadow(0 0 5px rgba(200,146,42,0.35));
+  }
+
+  .boot-halo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(200,146,42,0.18) 0%, transparent 70%);
+    animation: bootHaloPulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes bootHaloPulse {
+    0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+    50% { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+  }
+
+  .boot-poco-wrap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 158px;
+    height: 158px;
+    border-radius: 50%;
+    background: var(--cream);
+    overflow: hidden;
+    box-shadow: 0 0 0 3px rgba(232,184,75,0.25), 0 0 0 7px rgba(232,184,75,0.08), 0 12px 50px rgba(0,0,0,0.55);
+    animation: bootPocoBob 2.3s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .boot-poco-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 10px;
+  }
+
+  .boot-msg {
+    font-size: clamp(0.75rem, 2.2vw, 0.88rem);
+    font-weight: 500;
+    color: rgba(250,248,245,0.55);
+    letter-spacing: 1px;
+    text-align: center;
+    min-height: 1.4em;
+    margin-bottom: 1.9rem;
+    transition: opacity 0.28s ease;
+  }
+
+  .boot-pct {
+    font-size: 0.68rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(250,248,245,0.22);
+  }
+
+  .boot-foot {
+    position: fixed;
+    bottom: 1.4rem;
+    font-size: 0.62rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: rgba(250,248,245,0.14);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes bootPocoBob {
+    0%,100% { transform: translate(-50%, -50%) translateY(0px); }
+    50% { transform: translate(-50%, -50%) translateY(-8px); }
+  }
+
   .login-screen {
     min-height: 100vh;
     display: grid;
@@ -941,6 +1130,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <div class="boot-loader ready" id="bootLoader" aria-live="polite" aria-busy="true">
+    <div class="boot-wrap" id="bootWrap">
+      <div class="boot-wordmark">
+        AHA!
+        <small>A Cappella Harmonic Association</small>
+      </div>
+      <div class="boot-stage">
+        <svg class="boot-ring-svg" viewBox="0 0 230 230" aria-hidden="true">
+          <circle class="boot-ring-track" cx="115" cy="115" r="108"></circle>
+          <circle class="boot-ring-fill" cx="115" cy="115" r="108" id="bootRingFill" stroke-dasharray="678.6" stroke-dashoffset="678.6"></circle>
+        </svg>
+        <div class="boot-halo"></div>
+        <div class="boot-poco-wrap">
+          <img src="../assets/images/poco.png" alt="Poco the Piano Penguin">
+        </div>
+      </div>
+      <div class="boot-msg" id="bootMsg">Warming up the vocals...</div>
+      <div class="boot-pct" id="bootPct">0%</div>
+    </div>
+    <div class="boot-foot">♪ &nbsp; One Voice. Many Hearts. &nbsp; ♪</div>
+  </div>
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
       <h1>AHA Admin Portal</h1>
@@ -2425,19 +2635,27 @@
   });
 
   async function initAuth() {
-    await handleAuthRedirect();
-    const { data } = await supabaseClient.auth.getSession();
-    currentSession = data.session;
-    if (currentSession) {
-      setAuthState(true);
-      setEditMode(true);
-      await loadAccessProfile();
-      await refreshEditor();
-      await loadSubmissions();
-      await loadUsers();
-      setActiveView('content');
-    } else {
-      setAuthState(false);
+    try {
+      await handleAuthRedirect();
+      const { data } = await supabaseClient.auth.getSession();
+      currentSession = data.session;
+      if (currentSession) {
+        setAuthState(true);
+        setEditMode(true);
+        await loadAccessProfile();
+        await refreshEditor();
+        await loadSubmissions();
+        await loadUsers();
+        setActiveView('content');
+      } else {
+        setAuthState(false);
+      }
+    } finally {
+      const bootLoader = document.getElementById('bootLoader');
+      if (bootLoader) {
+        bootLoader.classList.remove('ready');
+        window.setTimeout(() => bootLoader.remove(), 450);
+      }
     }
   }
 
