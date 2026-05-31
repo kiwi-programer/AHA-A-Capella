@@ -68,6 +68,12 @@ Deploy `admin/` as its own Vercel project.
 
 Deploy `backend/` as a separate Vercel project.
 
+### Startup behavior
+
+- The public site stays hidden behind a lightweight loading state until Supabase content finishes hydrating.
+- The admin editor iframe inherits the same behavior, so the default markup does not flash before live content arrives.
+- If the site appears stuck on loading in production, verify the backend content endpoint is reachable and returning a valid payload.
+
 ## Favicon Placement
 
 Use `.ico` files.

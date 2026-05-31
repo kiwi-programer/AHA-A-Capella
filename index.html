@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="site-loading">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +36,24 @@
     background: var(--marble);
     color: var(--charcoal);
     overflow-x: hidden;
+  }
+
+  html.site-loading body {
+    visibility: hidden;
+  }
+
+  html.site-loading::before {
+    content: 'Loading AHA...';
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(180deg, #f6f2eb 0%, #f0eeeb 40%, #ebe6df 100%);
+    color: var(--charcoal);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 9999;
   }
 
   /* MARBLE TEXTURE BACKGROUND */
@@ -1524,6 +1542,8 @@ async function hydratePublicContent() {
     window.AHASiteContent.applyContent(content, document);
   } catch (error) {
     window.AHASiteContent.applyContent(window.AHASiteContent.defaults, document);
+  } finally {
+    document.documentElement.classList.remove('site-loading');
   }
 
   renderEvents();
