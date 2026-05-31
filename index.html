@@ -1052,10 +1052,6 @@
   <div class="page-content">
 
     <div class="section-label" data-edit-key="upcomingEventsLabel">Upcoming Events</div>
-    <div id="eventEditorControls" class="event-editor-controls hidden">
-      <button class="btn btn-outline" id="addEventBtn" type="button">Add Event</button>
-      <button class="btn btn-outline" id="removeEventBtn" type="button">Remove Last Event</button>
-    </div>
     <div class="events-list" id="eventsList"></div>
     <div class="hidden-json-store" data-edit-key="eventsData" id="eventsDataStore"></div>
 
@@ -1325,6 +1321,8 @@ function renderEvents() {
     return;
   }
 
+  ensureEventEditorControls();
+
   currentEvents = parseEventsData();
   eventsList.innerHTML = '';
 
@@ -1380,6 +1378,40 @@ function renderEvents() {
   const controls = document.getElementById('eventEditorControls');
   if (controls) {
     controls.classList.toggle('hidden', !EDITOR_MODE);
+  }
+}
+
+function ensureEventEditorControls() {
+  const eventsPage = document.getElementById('page-events');
+  const eventsList = document.getElementById('eventsList');
+  if (!eventsPage || !eventsList) {
+    return;
+  }
+
+  let controls = document.getElementById('eventEditorControls');
+  if (!EDITOR_MODE) {
+    controls?.remove();
+    return;
+  }
+
+  if (!controls) {
+    controls = document.createElement('div');
+    controls.id = 'eventEditorControls';
+    controls.className = 'event-editor-controls';
+    controls.innerHTML = `
+      <button class="btn btn-outline" id="addEventBtn" type="button">Add Event</button>
+      <button class="btn btn-outline" id="removeEventBtn" type="button">Remove Last Event</button>
+    `;
+    eventsList.parentElement.insertBefore(controls, eventsList);
+
+    const addEventBtn = document.getElementById('addEventBtn');
+    const removeEventBtn = document.getElementById('removeEventBtn');
+    if (addEventBtn) {
+      addEventBtn.addEventListener('click', addEventCard);
+    }
+    if (removeEventBtn) {
+      removeEventBtn.addEventListener('click', removeLastEventCard);
+    }
   }
 }
 
@@ -1643,14 +1675,6 @@ function clearContact() {
 hydratePublicContent();
 if (EDITOR_MODE) {
   enableEditorMode();
-  const addEventBtn = document.getElementById('addEventBtn');
-  const removeEventBtn = document.getElementById('removeEventBtn');
-  if (addEventBtn) {
-    addEventBtn.addEventListener('click', addEventCard);
-  }
-  if (removeEventBtn) {
-    removeEventBtn.addEventListener('click', removeLastEventCard);
-  }
 }
 
 </script>
